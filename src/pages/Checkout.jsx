@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import '../styles/admin.css';
 
@@ -35,7 +35,8 @@ export default function Checkout() {
   const handlePay = async () => {
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'orders'), {
+      const newRef = doc(collection(db, 'orders'));
+      setDoc(newRef, {
         buyerName,
         phone,
         address: address || '',
@@ -46,7 +47,7 @@ export default function Checkout() {
         qty: qty || 1,
         paymentMethod,
         status: 'new',
-        createdAt: serverTimestamp(),
+        createdAt: Timestamp.now(),
       });
       navigator.vibrate?.(200);
       navigate(`/shop/${sellerSlug}/order-complete`, {

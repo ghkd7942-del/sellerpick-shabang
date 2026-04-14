@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { doc, collection, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import useImageUpload from '../hooks/useImageUpload';
 
@@ -56,23 +56,16 @@ export default function QuickAdd({ onClose, onSuccess }) {
         isLive: true,
         createdAt: Timestamp.now(),
       };
-      console.log('Saving product:', productData);
 
-      // 15초 타임아웃
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('저장 시간 초과 — 인터넷 연결을 확인해주세요')), 15000)
-      );
-      await Promise.race([
-        addDoc(collection(db, 'products'), productData),
-        timeout,
-      ]);
+      // 서버 확인을 기다리지 않고 로컬에 바로 저장 (fire-and-forget)
+      const newRef = doc(collection(db, 'products'));
+      setDoc(newRef, productData);
 
-      console.log('Product saved!');
       onSuccess?.();
       onClose();
     } catch (err) {
       console.error('Save error:', err);
-      alert('등록 실패: ' + err.message + '\n\nFirestore 연결을 확인해주세요.');
+      alert('등록 실패: ' + err.message);
     }
     setSubmitting(false);
   };
