@@ -1,89 +1,74 @@
 import { useState } from 'react';
-import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
-  const [status, setStatus] = useState({
-    firestore: null,
-    testing: false,
-  });
+  const navigate = useNavigate();
+  const [result, setResult] = useState('');
+  const [testing, setTesting] = useState(false);
 
-  const testFirebase = async () => {
-    console.log('Test started');
-    setStatus({ firestore: null, testing: true });
-
+  const testWrite = async () => {
+    setTesting(true);
+    setResult('Firestore 쓰기 테스트 중...');
     try {
-      console.log('Testing Firestore...');
-      const testRef = doc(db, '_test', 'connection');
-      await setDoc(testRef, { timestamp: new Date().toISOString() });
-      console.log('Firestore write OK');
-      const snap = await getDoc(testRef);
-      if (snap.exists()) {
-        await deleteDoc(testRef);
-        console.log('Firestore read+delete OK');
-        setStatus({ firestore: 'ok', testing: false });
-      } else {
-        setStatus({ firestore: 'fail', testing: false });
-      }
+      const ref = await addDoc(collection(db, '_test'), {
+        msg: 'hello',
+        time: Timestamp.now(),
+      });
+      setResult('✅ 쓰기 성공! ID: ' + ref.id);
     } catch (err) {
-      console.error('Firestore error:', err);
-      setStatus({ firestore: err.message, testing: false });
+      setResult('❌ 쓰기 실패: ' + err.code + ' — ' + err.message);
     }
+    setTesting(false);
   };
 
-  const renderStatus = (label, value) => {
-    if (value === null) return null;
-    const isOk = value === 'ok';
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 1rem',
-          background: isOk ? '#ECFDF5' : '#FEF2F2',
-          borderRadius: '0.5rem',
-          color: isOk ? '#065F46' : '#991B1B',
-          fontSize: '0.875rem',
-        }}
-      >
-        <span>{isOk ? '\u2705' : '\u274C'}</span>
-        <span>
-          {label}: {isOk ? '연결 성공' : value}
-        </span>
-      </div>
-    );
+  const testRead = async () => {
+    setTesting(true);
+    setResult('Firestore 읽기 테스트 중...');
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      setResult('✅ 읽기 성공! products: ' + snap.size + '개');
+    } catch (err) {
+      setResult('❌ 읽기 실패: ' + err.code + ' — ' + err.message);
+    }
+    setTesting(false);
   };
 
   return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1 style={{ color: 'var(--color-pink)', fontSize: '2rem' }}>
-        셀러픽 SellerPick
+    <div style={{ padding: 24, maxWidth: 430, margin: '0 auto', textAlign: 'center' }}>
+      <h1 style={{ color: 'var(--color-pink)', fontSize: '2rem', marginBottom: 8 }}>
+        셀러픽
       </h1>
-      <p style={{ color: 'var(--color-gray-500)', marginTop: '0.5rem' }}>
-        샤방이 셀러 관리 시스템
-      </p>
+      <p style={{ color: 'var(--color-gray-500)', marginBottom: 32 }}>Firebase 연결 테스트</p>
 
-      <div style={{ marginTop: '2rem' }}>
-        <button
-          className="btn-primary"
-          onClick={testFirebase}
-          disabled={status.testing}
-        >
-          {status.testing ? '테스트 중...' : 'Firebase 연결 테스트'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button className="btn-primary" onClick={testWrite} disabled={testing}
+          style={{ padding: 14, fontSize: '1rem' }}>
+          Firestore 쓰기 테스트
+        </button>
+        <button className="btn-secondary" onClick={testRead} disabled={testing}
+          style={{ padding: 14, fontSize: '1rem' }}>
+          Firestore 읽기 테스트
         </button>
       </div>
 
-      <div
-        style={{
-          marginTop: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          alignItems: 'center',
-        }}
-      >
-        {renderStatus('Firestore', status.firestore)}
+      {result && (
+        <div style={{
+          marginTop: 20, padding: 16, borderRadius: 12,
+          background: result.includes('✅') ? '#ECFDF5' : result.includes('❌') ? '#FEF2F2' : '#F3F4F6',
+          fontSize: '0.875rem', textAlign: 'left', wordBreak: 'break-all',
+          color: result.includes('✅') ? '#065F46' : result.includes('❌') ? '#991B1B' : '#374151',
+        }}>
+          {result}
+        </div>
+      )}
+
+      <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button onClick={() => navigate('/login')}
+          style={{ padding: 14, fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-pink)', border: '1px solid var(--color-pink)', borderRadius: 12, minHeight: 48 }}>
+          로그인 페이지로
+        </button>
       </div>
     </div>
   );
