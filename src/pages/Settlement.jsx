@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
@@ -56,6 +57,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Settlement() {
+  const navigate = useNavigate();
   const { orders, loading } = useOrders(500);
   const [period, setPeriod] = useState('today');
 
@@ -282,7 +284,7 @@ export default function Settlement() {
       }}>
         <button
           className="btn-primary"
-          onClick={() => alert('배송 용지 출력 기능 준비 중')}
+          onClick={() => navigate('/admin/print')}
           style={{ width: '100%', padding: '14px', fontSize: '0.9375rem' }}
         >
           &#128230; 오늘 배송 용지 출력 (입금완료 {todayPaidCount}건)

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import useAuth from '../hooks/useAuth';
+import useCustomerProfile from '../hooks/useCustomerProfile';
 import '../styles/admin.css';
 
 const inputStyle = {
@@ -17,12 +19,26 @@ const labelStyle = {
 export default function OrderForm() {
   const { sellerSlug, productId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useCustomerProfile();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [qty, setQty] = useState(1);
   const [form, setForm] = useState({
     buyerName: '', phone: '', address: '', option: '',
   });
+
+  // 프로필에서 자동 입력
+  useEffect(() => {
+    if (profile) {
+      setForm((prev) => ({
+        ...prev,
+        buyerName: prev.buyerName || profile.name || '',
+        phone: prev.phone || profile.phone || '',
+        address: prev.address || profile.address || '',
+      }));
+    }
+  }, [profile]);
 
   useEffect(() => {
     (async () => {
@@ -40,48 +56,24 @@ export default function OrderForm() {
     ? product.options.split(',').map((o) => o.trim()).filter(Boolean)
     : [];
 
-  const handleSubmit = async () => {
-    if (!form.buyerName || !form.phone || !form.address) {
-      alert('이름, 연락처, 주소를 입력해주세요.');
+  const handleNext = () => {
+    if (!form.buyerName || !form.phone) {
+      alert('이름과 연락처를 입력해주세요.');
       return;
     }
     if (options.length > 0 && !form.option) {
       alert('옵션을 선택해주세요.');
       return;
     }
-
-    setSubmitting(true);
-    try {
-      await addDoc(collection(db, 'orders'), {
-        buyerName: form.buyerName,
-        phone: form.phone,
-        address: form.address,
-        productId: product.id,
-        productName: product.name,
-        price: product.price,
-        option: form.option,
-        status: 'new',
-        createdAt: serverTimestamp(),
-      });
-      navigate(`/shop/${sellerSlug}/order-complete`, {
-        state: {
-          productName: product.name,
-          price: product.price,
-          buyerName: form.buyerName,
-        },
-      });
-    } catch (err) {
-      alert('주문 실패: ' + err.message);
-    }
-    setSubmitting(false);
+    navigate(`/shop/${sellerSlug}/checkout/${productId}`, {
+      state: { ...form, qty, product },
+    });
   };
 
   if (loading) {
     return (
       <div className="admin-container">
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)' }}>
-          로딩 중...
-        </div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)' }}>로딩 중...</div>
       </div>
     );
   }
@@ -89,16 +81,15 @@ export default function OrderForm() {
   if (!product) {
     return (
       <div className="admin-container">
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)' }}>
-          상품을 찾을 수 없습니다
-        </div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)' }}>상품을 찾을 수 없습니다</div>
       </div>
     );
   }
 
+  const totalPrice = product.price * qty;
+
   return (
     <div className="admin-container">
-      {/* 헤더 */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', gap: 12,
@@ -108,10 +99,14 @@ export default function OrderForm() {
         <button onClick={() => navigate(-1)} style={{ fontSize: '1.25rem', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center' }}>
           &#8592;
         </button>
-        <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>주문하기</h1>
+        <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>주문 정보</h1>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          <span style={stepBadge(true)}>1</span>
+          <span style={stepBadge(false)}>2</span>
+        </div>
       </header>
 
-      <div style={{ padding: 16, paddingBottom: 32, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: 16, paddingBottom: 100, display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* 상품 요약 */}
         <div style={{
           display: 'flex', gap: 12, background: 'white',
@@ -123,9 +118,9 @@ export default function OrderForm() {
               ? `url(${product.imageUrl}) center/cover`
               : 'var(--color-gray-200)',
           }} />
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.9375rem', fontWeight: 700 }}>{product.name}</div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-pink)', marginTop: 4 }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-pink)', marginTop: 4 }}>
               {product.price.toLocaleString('ko-KR')}원
             </div>
           </div>
@@ -156,55 +151,80 @@ export default function OrderForm() {
           </div>
         )}
 
-        {/* 받는 분 */}
+        {/* 수량 */}
         <div>
-          <label style={labelStyle}>받는 분 이름 *</label>
-          <input style={inputStyle} placeholder="홍길동"
-            value={form.buyerName} onChange={(e) => handleChange('buyerName', e.target.value)} />
+          <label style={labelStyle}>수량</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button onClick={() => setQty(Math.max(1, qty - 1))} style={qtyBtn}>-</button>
+            <span style={{ fontSize: '1.125rem', fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{qty}</span>
+            <button onClick={() => setQty(qty + 1)} style={qtyBtn}>+</button>
+            <span style={{ marginLeft: 'auto', fontSize: '1rem', fontWeight: 700, color: 'var(--color-pink)' }}>
+              {totalPrice.toLocaleString('ko-KR')}원
+            </span>
+          </div>
         </div>
 
-        {/* 연락처 */}
-        <div>
-          <label style={labelStyle}>연락처 *</label>
-          <input style={inputStyle} inputMode="tel" placeholder="010-0000-0000"
-            value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} />
-        </div>
-
-        {/* 배송지 */}
-        <div>
-          <label style={labelStyle}>배송지 *</label>
-          <input style={inputStyle} placeholder="주소를 입력하세요"
-            value={form.address} onChange={(e) => handleChange('address', e.target.value)} />
-        </div>
-
-        {/* 입금 안내 */}
+        {/* 구매자 정보 */}
         <div style={{
-          background: '#FFF8F0', borderRadius: 12, padding: '16px 18px',
-          border: '1px solid #FFE0B2',
+          background: 'white', borderRadius: 12, padding: 16,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          display: 'flex', flexDirection: 'column', gap: 14,
         }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#E65100', marginBottom: 8 }}>
-            &#127974; 무통장 입금 안내
+          <div style={{ fontSize: '0.9375rem', fontWeight: 700 }}>구매자 정보</div>
+
+          <div>
+            <label style={labelStyle}>이름 *</label>
+            <input style={inputStyle} placeholder="홍길동"
+              value={form.buyerName} onChange={(e) => handleChange('buyerName', e.target.value)} />
           </div>
-          <div style={{ fontSize: '0.875rem', lineHeight: 1.8, color: '#5D4037' }}>
-            국민은행 000-0000-0000<br />
-            예금주: 샤방이 · <strong>{product.price.toLocaleString('ko-KR')}원</strong><br />
-            주문자명으로 입금해주세요
+
+          <div>
+            <label style={labelStyle}>연락처 *</label>
+            <input style={inputStyle} inputMode="tel" placeholder="010-0000-0000"
+              value={form.phone} onChange={(e) => handleChange('phone', e.target.value)} />
+          </div>
+
+          <div>
+            <label style={labelStyle}>배송지 (나중에 입력 가능)</label>
+            <input style={inputStyle} placeholder="주소를 입력하세요"
+              value={form.address} onChange={(e) => handleChange('address', e.target.value)} />
           </div>
         </div>
+      </div>
 
-        {/* 주문 버튼 */}
+      {/* 하단 버튼 */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        maxWidth: 430, margin: '0 auto',
+        padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        background: 'white', borderTop: '1px solid var(--color-gray-200)',
+      }}>
         <button
           className="btn-primary"
-          onClick={handleSubmit}
-          disabled={submitting}
-          style={{
-            width: '100%', padding: '14px', fontSize: '1rem', marginTop: 4,
-            opacity: submitting ? 0.6 : 1,
-          }}
+          onClick={handleNext}
+          style={{ width: '100%', padding: '16px', fontSize: '1rem' }}
         >
-          {submitting ? '주문 처리 중...' : '주문 신청하기'}
+          결제하기 · {totalPrice.toLocaleString('ko-KR')}원
         </button>
       </div>
     </div>
   );
 }
+
+function stepBadge(active) {
+  return {
+    width: 24, height: 24, borderRadius: '50%',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.6875rem', fontWeight: 700,
+    background: active ? 'var(--color-pink)' : 'var(--color-gray-200)',
+    color: active ? 'white' : 'var(--color-gray-500)',
+  };
+}
+
+const qtyBtn = {
+  width: 40, height: 40, borderRadius: 10,
+  border: '1px solid var(--color-gray-200)',
+  background: 'white', fontSize: '1.25rem',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer',
+};

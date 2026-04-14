@@ -5,7 +5,7 @@ export default function OrderComplete() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { productName, price, buyerName } = location.state || {};
+  const { productName, price, buyerName, paymentMethod } = location.state || {};
 
   return (
     <div className="admin-container">
@@ -41,13 +41,23 @@ export default function OrderComplete() {
             </span>
           </div>
           <div style={rowStyle}>
-            <span style={rowLabel}>입금계좌</span>
-            <span style={rowValue}>국민 000-0000-0000</span>
+            <span style={rowLabel}>결제방법</span>
+            <span style={rowValue}>
+              {paymentMethod === 'kakaopay' ? '카카오페이' : paymentMethod === 'tosspay' ? '토스페이' : '무통장 입금'}
+            </span>
           </div>
-          <div style={{ ...rowStyle, borderBottom: 'none' }}>
-            <span style={rowLabel}>예금주</span>
-            <span style={rowValue}>샤방이</span>
-          </div>
+          {paymentMethod === 'bank' && (
+            <>
+              <div style={rowStyle}>
+                <span style={rowLabel}>입금계좌</span>
+                <span style={rowValue}>국민 000-0000-0000</span>
+              </div>
+              <div style={{ ...rowStyle, borderBottom: 'none' }}>
+                <span style={rowLabel}>예금주</span>
+                <span style={rowValue}>샤방이</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 카카오톡 안내 */}
