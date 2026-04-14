@@ -46,7 +46,7 @@ export default function QuickAdd({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'products'), {
+      const productData = {
         name,
         price: parseInt(price.replace(/[^0-9]/g, ''), 10),
         stock: 99,
@@ -55,11 +55,24 @@ export default function QuickAdd({ onClose, onSuccess }) {
         options: '',
         isLive: true,
         createdAt: Timestamp.now(),
-      });
+      };
+      console.log('Saving product:', productData);
+
+      // 5초 타임아웃
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('저장 시간 초과')), 5000)
+      );
+      await Promise.race([
+        addDoc(collection(db, 'products'), productData),
+        timeout,
+      ]);
+
+      console.log('Product saved!');
       onSuccess?.();
       onClose();
     } catch (err) {
-      alert('등록 실패: ' + err.message);
+      console.error('Save error:', err);
+      alert('등록 실패: ' + err.message + '\n\nFirestore 연결을 확인해주세요.');
     }
     setSubmitting(false);
   };
