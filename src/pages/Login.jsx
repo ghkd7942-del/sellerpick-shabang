@@ -8,20 +8,26 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSocialLogin = async (provider) => {
+  // 카카오 → 관리자
+  const handleKakao = async () => {
     setError('');
     setLoading(true);
     try {
-      if (provider === 'google') {
-        await loginWithGoogle();
-      } else if (provider === 'kakao') {
-        // 카카오 OIDC 설정 전까지 임시 진입
-        sessionStorage.setItem('kakao_temp_auth', 'true');
-        navigate('/admin');
-        setLoading(false);
-        return;
-      }
+      sessionStorage.setItem('kakao_temp_auth', 'true');
       navigate('/admin');
+    } catch (err) {
+      setError('로그인 실패');
+    }
+    setLoading(false);
+  };
+
+  // 구글 → 고객
+  const handleGoogle = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate('/shop/샤방이');
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError('로그인 실패: ' + (err.message || '다시 시도해주세요'));
@@ -48,49 +54,56 @@ export default function Login() {
         </p>
       </div>
 
-      {/* 에러 */}
       {error && (
         <div style={{
           background: '#FEF2F2', color: '#991B1B',
           padding: '10px 14px', borderRadius: 8,
           fontSize: '0.8125rem', marginBottom: 16,
-        }}>
-          {error}
-        </div>
+        }}>{error}</div>
       )}
 
-      {/* 소셜 로그인 버튼 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* 카카오 로그인 */}
+        {/* 셀러 (관리자) */}
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-gray-500)', marginBottom: -4 }}>
+          셀러 관리자
+        </div>
         <button
-          onClick={() => handleSocialLogin('kakao')}
+          onClick={handleKakao}
           disabled={loading}
           style={{
             width: '100%', padding: '16px', borderRadius: 12,
             background: '#FEE500', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: '1rem', fontWeight: 700, minHeight: 54,
-            color: '#191919',
+            fontSize: '1rem', fontWeight: 700, minHeight: 54, color: '#191919',
             opacity: loading ? 0.6 : 1,
           }}
         >
           <svg width="20" height="20" viewBox="0 0 20 20">
             <path fill="#191919" d="M10 0C4.477 0 0 3.582 0 8c0 2.87 1.89 5.39 4.727 6.81-.208.774-.754 2.805-.864 3.24-.136.543.199.537.418.39.172-.115 2.74-1.861 3.845-2.616A12.58 12.58 0 0010 16c5.523 0 10-3.582 10-8S15.523 0 10 0z"/>
           </svg>
-          카카오로 시작하기
+          카카오로 시작하기 (관리자)
         </button>
 
-        {/* 구글 로그인 */}
+        {/* 구분선 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--color-gray-200)' }} />
+          <span style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>또는</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--color-gray-200)' }} />
+        </div>
+
+        {/* 고객 */}
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-gray-500)', marginBottom: -4 }}>
+          고객 쇼핑
+        </div>
         <button
-          onClick={() => handleSocialLogin('google')}
+          onClick={handleGoogle}
           disabled={loading}
           style={{
             width: '100%', padding: '16px', borderRadius: 12,
             border: '1px solid var(--color-gray-200)',
             background: 'white', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: '1rem', fontWeight: 600, minHeight: 54,
-            color: 'var(--color-gray-700)',
+            fontSize: '1rem', fontWeight: 600, minHeight: 54, color: 'var(--color-gray-700)',
             opacity: loading ? 0.6 : 1,
           }}
         >
@@ -100,7 +113,7 @@ export default function Login() {
             <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
           </svg>
-          Google로 시작하기
+          Google로 시작하기 (쇼핑)
         </button>
       </div>
 
