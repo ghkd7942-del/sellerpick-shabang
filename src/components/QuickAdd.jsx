@@ -58,9 +58,9 @@ export default function QuickAdd({ onClose, onSuccess }) {
       };
       console.log('Saving product:', productData);
 
-      // 5초 타임아웃
+      // 15초 타임아웃
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('저장 시간 초과')), 5000)
+        setTimeout(() => reject(new Error('저장 시간 초과 — 인터넷 연결을 확인해주세요')), 15000)
       );
       await Promise.race([
         addDoc(collection(db, 'products'), productData),
