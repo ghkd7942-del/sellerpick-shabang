@@ -10,6 +10,7 @@ import LiveMode from './pages/LiveMode';
 import PrintLabels from './pages/PrintLabels';
 import ProductManagement from './pages/ProductManagement';
 import SellerSettings from './pages/SellerSettings';
+import CustomerManagement from './pages/CustomerManagement';
 import ShopHome from './pages/ShopHome';
 import OrderForm from './pages/OrderForm';
 import Checkout from './pages/Checkout';
@@ -34,6 +35,7 @@ function App() {
           <Route path="/admin/print" element={<ProtectedRoute><PrintLabels /></ProtectedRoute>} />
           <Route path="/admin/products" element={<ProtectedRoute><ProductManagement /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><SellerSettings /></ProtectedRoute>} />
+          <Route path="/admin/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
 
           {/* 고객 — 로그인 불필요 */}
           <Route path="/shop/:sellerSlug" element={<ShopHome />} />

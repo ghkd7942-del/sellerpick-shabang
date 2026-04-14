@@ -70,6 +70,39 @@ export default function OrderForm() {
     });
   };
 
+  // 비로그인 → 로그인 유도
+  if (!user && !loading) {
+    return (
+      <div className="admin-container">
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 50,
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 16px', height: 56, background: 'white',
+          borderBottom: '1px solid var(--color-gray-200)',
+        }}>
+          <button onClick={() => navigate(-1)} style={{ fontSize: '1.25rem', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center' }}>
+            &#8592;
+          </button>
+          <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>주문하기</h1>
+        </header>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>&#128100;</div>
+          <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 4 }}>로그인 후 주문할 수 있어요</div>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)', marginBottom: 20 }}>
+            로그인하면 정보가 자동으로 입력됩니다
+          </div>
+          <button
+            className="btn-primary"
+            onClick={() => navigate(`/shop/${sellerSlug}/login`)}
+            style={{ padding: '14px 32px', fontSize: '0.9375rem' }}
+          >
+            로그인하기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="admin-container">

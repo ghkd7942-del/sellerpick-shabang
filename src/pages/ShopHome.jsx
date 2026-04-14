@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useLiveSession from '../hooks/useLiveSession';
+import useAuth from '../hooks/useAuth';
 import LivePlayer from '../components/LivePlayer';
 import ShopTabBar from '../components/ShopTabBar';
 import '../styles/admin.css';
@@ -9,6 +10,7 @@ import '../styles/admin.css';
 export default function ShopHome() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { products, loading } = useLiveProducts();
   const { session } = useLiveSession();
 
@@ -34,14 +36,41 @@ export default function ShopHome() {
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
           {sellerSlug} &#128722;
         </h1>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center',
-          background: 'var(--color-pink)', color: 'white',
-          fontSize: '0.75rem', fontWeight: 700,
-          padding: '4px 10px', borderRadius: 9999,
-        }}>
-          <span className="live-dot" />LIVE
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center',
+            background: 'var(--color-pink)', color: 'white',
+            fontSize: '0.75rem', fontWeight: 700,
+            padding: '4px 10px', borderRadius: 9999,
+          }}>
+            <span className="live-dot" />LIVE
+          </span>
+          {user ? (
+            <button
+              onClick={() => navigate(`/shop/${sellerSlug}/my`)}
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--color-pink), #FF8C00)',
+                color: 'white', fontSize: '0.75rem', fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {(user.displayName || user.email || '?')[0]}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate(`/shop/${sellerSlug}/login`)}
+              style={{
+                fontSize: '0.75rem', fontWeight: 600,
+                color: 'var(--color-pink)', padding: '6px 10px',
+                border: '1px solid var(--color-pink)', borderRadius: 8,
+                minHeight: 32,
+              }}
+            >
+              로그인
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="admin-content">
