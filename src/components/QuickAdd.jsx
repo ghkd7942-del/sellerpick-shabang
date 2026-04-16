@@ -46,11 +46,19 @@ export default function QuickAdd({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
-      // 업로드 완료 대기 (이미 완료됐으면 즉시 반환)
+      // 업로드 완료 대기 (최대 30초)
       let finalImageUrl = imageUrl;
       if (uploadPromiseRef.current) {
-        const result = await uploadPromiseRef.current;
-        finalImageUrl = result || imageUrl;
+        try {
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('업로드 시간 초과')), 30000)
+          );
+          const result = await Promise.race([uploadPromiseRef.current, timeout]);
+          finalImageUrl = result || imageUrl;
+        } catch (uploadErr) {
+          console.error('Upload failed, saving without image:', uploadErr);
+          finalImageUrl = imageUrl || '';
+        }
       }
 
       const docId = await addDocument('products', {
@@ -235,7 +243,11 @@ export default function QuickAdd({ onClose, onSuccess }) {
             minHeight: 56, opacity: submitting ? 0.6 : 1,
           }}
         >
-          {submitting ? '등록 중...' : '⚡ 즉시 등록'}
+          {submitting
+            ? (uploading ? `사진 업로드 중... ${progress}%` : '등록 중...')
+            : uploading
+              ? `⚡ 즉시 등록 (사진 ${progress}%)`
+              : '⚡ 즉시 등록'}
         </button>
       </div>
     </div>
