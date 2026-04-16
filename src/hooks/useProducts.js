@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function useProducts() {
@@ -8,9 +8,14 @@ export default function useProducts() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      setProducts(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      const snap = await getDocs(collection(db, 'products'));
+      const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      data.sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
+      setProducts(data);
     } catch (err) {
       console.error('Products fetch error:', err);
     }
