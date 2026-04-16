@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { compressImage } from '../lib/imageCompress';
 
 const BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
 
@@ -16,15 +17,17 @@ export default function useImageUpload() {
     setProgress(10);
 
     try {
-      const fileName = `products/${Date.now()}_${file.name}`;
-      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o?name=${encodeURIComponent(fileName)}`;
+      // 압축 (핸드폰 사진 5MB → 200KB)
+      const compressed = await compressImage(file, 1000, 0.8);
+      setProgress(40);
 
-      setProgress(30);
+      const fileName = `products/${Date.now()}_${compressed.name}`;
+      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o?name=${encodeURIComponent(fileName)}`;
 
       const res = await fetch(uploadUrl, {
         method: 'POST',
-        headers: { 'Content-Type': file.type || 'image/jpeg' },
-        body: file,
+        headers: { 'Content-Type': compressed.type || 'image/jpeg' },
+        body: compressed,
       });
 
       if (!res.ok) {
