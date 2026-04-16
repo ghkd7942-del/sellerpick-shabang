@@ -15,7 +15,7 @@ import '../styles/admin.css';
 
 export default function AdminDashboard() {
   const { orders, loading: ordersLoading } = useOrders();
-  const { products, loading: productsLoading } = useProducts();
+  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts();
   const { todayOrderCount, paidCount, todayRevenue } = useStats(orders);
   const navigate = useNavigate();
   const [seeding, setSeeding] = useState(false);
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
         </button>
 
         <RecentOrders orders={orders} loading={ordersLoading} />
-        <ProductList products={products} loading={productsLoading} />
+        <ProductList products={products} loading={productsLoading} refetch={refetchProducts} />
 
         {orders.length === 0 && products.length === 0 && !ordersLoading && (
           <button
