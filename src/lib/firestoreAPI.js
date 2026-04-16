@@ -1,6 +1,6 @@
 // Firebase SDK 우회 — Firestore REST API 직접 사용
-const PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+const PROJECT_ID = (import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
+const API_KEY = (import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 // Firestore 값 → JS 값

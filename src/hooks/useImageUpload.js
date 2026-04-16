@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { compressImage } from '../lib/imageCompress';
 
-const BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+// trim() - 환경변수에 공백/개행이 있을 수 있음
+const BUCKET = (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim();
 
 export default function useImageUpload() {
   const [imageUrl, setImageUrl] = useState('');
