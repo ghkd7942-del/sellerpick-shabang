@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { doc, collection, setDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
+import { addDocument } from '../lib/firestoreWrite';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,9 +13,8 @@ export default function Home() {
     setTesting(true);
     setResult('Firestore 쓰기 테스트 중...');
     try {
-      const newRef = doc(collection(db, '_test'));
-      setDoc(newRef, { msg: 'hello', time: Timestamp.now() });
-      setResult('✅ 쓰기 성공! ID: ' + newRef.id);
+      const docId = await addDocument('_test', { msg: 'hello' });
+      setResult('✅ 쓰기 성공! ID: ' + docId);
     } catch (err) {
       setResult('❌ 쓰기 실패: ' + err.code + ' — ' + err.message);
     }

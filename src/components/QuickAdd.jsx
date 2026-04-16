@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { doc, collection, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { addDocument } from '../lib/firestoreWrite';
 import useImageUpload from '../hooks/useImageUpload';
 
 const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];
@@ -46,7 +45,7 @@ export default function QuickAdd({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
-      const productData = {
+      const docId = await addDocument('products', {
         name,
         price: parseInt(price.replace(/[^0-9]/g, ''), 10),
         stock: 99,
@@ -54,15 +53,8 @@ export default function QuickAdd({ onClose, onSuccess }) {
         category: category || '',
         options: '',
         isLive: true,
-        createdAt: Timestamp.now(),
-      };
-
-      // 서버 저장 대기 (20초 타임아웃)
-      const newRef = doc(collection(db, 'products'));
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('저장 시간 초과')), 20000)
-      );
-      await Promise.race([setDoc(newRef, productData), timeout]);
+      });
+      console.log('Product saved:', docId);
 
       onSuccess?.();
       onClose();
