@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { addDocument } from '../lib/firestoreWrite';
+import { addDocument } from '../lib/firestoreAPI';
 import '../styles/admin.css';
 
 const PAYMENT_METHODS = [

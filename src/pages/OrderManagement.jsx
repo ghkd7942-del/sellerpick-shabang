@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { updateDocument } from '../lib/firestoreAPI';
 import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
@@ -48,7 +47,7 @@ export default function OrderManagement() {
   const handleStatusChange = async (orderId, nextStatus) => {
     setUpdating(orderId);
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: nextStatus });
+      await updateDocument('orders', orderId, { status: nextStatus });
     } catch (err) {
       alert('상태 변경 실패: ' + err.message);
     }

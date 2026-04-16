@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { addDocument } from '../lib/firestoreAPI';
 import useImageUpload from '../hooks/useImageUpload';
 
 const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];
@@ -59,7 +58,7 @@ export default function ProductForm({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'products'), {
+      await addDocument('products', {
         name: form.name,
         price: parseInt(form.price.replace(/[^0-9]/g, ''), 10),
         stock: parseInt(form.stock, 10) || 0,
@@ -67,7 +66,7 @@ export default function ProductForm({ onClose, onSuccess }) {
         category: form.category,
         options: form.options,
         isLive: true,
-        createdAt: Timestamp.now(),
+        createdAt: new Date().toISOString(),
       });
       onSuccess?.();
       onClose();

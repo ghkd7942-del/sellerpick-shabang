@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { addDocument, updateDocument } from '../lib/firestoreWrite';
+import { getDocument, setDocument, updateDocument } from '../lib/firestoreAPI';
 
 export default function useLiveSession() {
   const [session, setSession] = useState(null);
@@ -9,10 +7,10 @@ export default function useLiveSession() {
 
   const fetchSession = useCallback(async () => {
     try {
-      const snap = await getDoc(doc(db, 'liveSession', 'current'));
-      setSession(snap.exists() ? snap.data() : null);
+      const data = await getDocument('liveSession', 'current');
+      setSession(data);
     } catch (err) {
-      console.error('LiveSession fetch error:', err);
+      console.error('LiveSession error:', err);
     }
     setLoading(false);
   }, []);
@@ -24,22 +22,13 @@ export default function useLiveSession() {
   }, [fetchSession]);
 
   const startSession = useCallback(async (productIds, youtubeVideoId = '') => {
-    await fetch(
-      `https://firestore.googleapis.com/v1/projects/${import.meta.env.VITE_FIREBASE_PROJECT_ID}/databases/(default)/documents/liveSession?documentId=current&key=${import.meta.env.VITE_FIREBASE_API_KEY}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fields: {
-            isActive: { booleanValue: true },
-            currentProductId: { stringValue: productIds[0] || '' },
-            productOrder: { arrayValue: { values: productIds.map(id => ({ stringValue: id })) } },
-            youtubeVideoId: { stringValue: youtubeVideoId },
-            startedAt: { timestampValue: new Date().toISOString() },
-          },
-        }),
-      }
-    );
+    await setDocument('liveSession', 'current', {
+      isActive: true,
+      currentProductId: productIds[0] || '',
+      productOrder: productIds,
+      youtubeVideoId,
+      startedAt: new Date(),
+    });
     fetchSession();
   }, [fetchSession]);
 
@@ -55,7 +44,7 @@ export default function useLiveSession() {
 
   const nextProduct = useCallback(async () => {
     if (!session?.productOrder) return;
-    const arr = session.productOrder.map ? session.productOrder : [];
+    const arr = Array.isArray(session.productOrder) ? session.productOrder : [];
     const idx = arr.indexOf(session.currentProductId);
     const next = arr[(idx + 1) % arr.length];
     await updateDocument('liveSession', 'current', { currentProductId: next });
@@ -64,7 +53,7 @@ export default function useLiveSession() {
 
   const prevProduct = useCallback(async () => {
     if (!session?.productOrder) return;
-    const arr = session.productOrder.map ? session.productOrder : [];
+    const arr = Array.isArray(session.productOrder) ? session.productOrder : [];
     const idx = arr.indexOf(session.currentProductId);
     const prev = arr[(idx - 1 + arr.length) % arr.length];
     await updateDocument('liveSession', 'current', { currentProductId: prev });

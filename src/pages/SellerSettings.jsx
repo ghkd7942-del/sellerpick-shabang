@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getDocument, setDocument } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
@@ -43,8 +42,8 @@ export default function SellerSettings() {
 
   useEffect(() => {
     (async () => {
-      const snap = await getDoc(doc(db, 'sellers', 'shabang'));
-      if (snap.exists()) setForm({ ...DEFAULT_SETTINGS, ...snap.data() });
+      const data = await getDocument('sellers', 'shabang');
+      if (data) setForm({ ...DEFAULT_SETTINGS, ...data });
       setLoading(false);
     })();
   }, []);
@@ -57,7 +56,7 @@ export default function SellerSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await setDoc(doc(db, 'sellers', 'shabang'), {
+      await setDocument('sellers', 'shabang', {
         ...form,
         updatedAt: new Date().toISOString(),
         updatedBy: user?.email || '',

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getCollection } from '../lib/firestoreAPI';
 import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
@@ -13,12 +12,21 @@ export default function CustomerManagement() {
   const { orders } = useOrders(500);
 
   useEffect(() => {
-    const q = query(collection(db, 'customers'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    }, () => setLoading(false));
-    return () => unsubscribe();
+    let cancelled = false;
+    const fetchCustomers = async () => {
+      try {
+        const data = await getCollection('customers');
+        if (!cancelled) {
+          setCustomers(data);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchCustomers();
+    const interval = setInterval(fetchCustomers, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   // 고객별 주문 통계

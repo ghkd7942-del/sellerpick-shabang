@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { addDocument } from '../lib/firestoreWrite';
-import { db } from '../lib/firebase';
+import { getCollection, addDocument } from '../lib/firestoreAPI';
 import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
@@ -25,8 +23,8 @@ export default function Home() {
     setTesting(true);
     setResult('Firestore 읽기 테스트 중...');
     try {
-      const snap = await getDocs(collection(db, 'products'));
-      setResult('✅ 읽기 성공! products: ' + snap.size + '개');
+      const data = await getCollection('products');
+      setResult('✅ 읽기 성공! products: ' + data.length + '개');
     } catch (err) {
       setResult('❌ 읽기 실패: ' + err.code + ' — ' + err.message);
     }

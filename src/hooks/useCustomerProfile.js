@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getDocument, setDocument } from '../lib/firestoreAPI';
 import useAuth from './useAuth';
 
 export default function useCustomerProfile() {
@@ -16,9 +15,9 @@ export default function useCustomerProfile() {
     }
 
     (async () => {
-      const snap = await getDoc(doc(db, 'customers', user.uid));
-      if (snap.exists()) {
-        setProfile(snap.data());
+      const data = await getDocument('customers', user.uid);
+      if (data) {
+        setProfile(data);
       } else {
         // 새 고객 — 기본 프로필 생성
         const newProfile = {
@@ -28,7 +27,7 @@ export default function useCustomerProfile() {
           email: user.email || '',
           createdAt: new Date().toISOString(),
         };
-        await setDoc(doc(db, 'customers', user.uid), newProfile);
+        await setDocument('customers', user.uid, newProfile);
         setProfile(newProfile);
       }
       setLoading(false);
@@ -37,7 +36,7 @@ export default function useCustomerProfile() {
 
   const updateProfile = useCallback(async (data) => {
     if (!user) return;
-    await setDoc(doc(db, 'customers', user.uid), data, { merge: true });
+    await setDocument('customers', user.uid, data);
     setProfile((prev) => ({ ...prev, ...data }));
   }, [user]);
 

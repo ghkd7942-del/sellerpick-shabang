@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getCollection } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import ShopTabBar from '../components/ShopTabBar';
@@ -44,20 +43,38 @@ export default function OrderTrack() {
     }
   }, [user, profile]);
 
+  const intervalRef = useRef(null);
+
   const searchByPhone = (phoneNum) => {
     setSearched(true);
     setLoading(true);
-    const q = query(
-      collection(db, 'orders'),
-      where('phone', '==', phoneNum.trim()),
-      orderBy('createdAt', 'desc')
-    );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    }, () => setLoading(false));
-    return () => unsubscribe();
+    const trimmed = phoneNum.trim();
+
+    const fetchOrders = async () => {
+      try {
+        const allOrders = await getCollection('orders');
+        const filtered = allOrders
+          .filter((o) => o.phone === trimmed)
+          .sort((a, b) => {
+            const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return tb - ta;
+          });
+        setOrders(filtered);
+        setLoading(false);
+      } catch {
+        setLoading(false);
+      }
+    };
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    fetchOrders();
+    intervalRef.current = setInterval(fetchOrders, 10000);
   };
+
+  useEffect(() => {
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
 
   const handleSearch = () => {
     if (!phone.trim()) return;

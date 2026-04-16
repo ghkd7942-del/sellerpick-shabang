@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getCollection } from '../lib/firestoreAPI';
 
 export default function useLiveProducts() {
   const [products, setProducts] = useState([]);
@@ -8,11 +7,8 @@ export default function useLiveProducts() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const snap = await getDocs(collection(db, 'products'));
-      const data = snap.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((p) => p.isLive === true);
-      setProducts(data);
+      const data = await getCollection('products');
+      setProducts(data.filter((p) => p.isLive === true));
     } catch (err) {
       console.error('Live products fetch error:', err);
     }

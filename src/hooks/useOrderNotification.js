@@ -1,37 +1,49 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getCollection } from '../lib/firestoreAPI';
 
 export default function useOrderNotification() {
   const [latestOrder, setLatestOrder] = useState(null);
   const [hasNew, setHasNew] = useState(false);
   const lastSeenId = useRef(null);
   const audioCtxRef = useRef(null);
-  const isFirstSnapshot = useRef(true);
+  const isFirstPoll = useRef(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(1));
+    let cancelled = false;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) return;
-      const order = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    const pollOrders = async () => {
+      try {
+        const orders = await getCollection('orders');
+        if (cancelled || orders.length === 0) return;
 
-      // 첫 스냅샷은 기존 데이터이므로 알림 안 함
-      if (isFirstSnapshot.current) {
-        lastSeenId.current = order.id;
-        isFirstSnapshot.current = false;
-        return;
+        // Sort by createdAt desc, take first
+        const sorted = [...orders].sort((a, b) => {
+          const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+          const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+          return tb - ta;
+        });
+        const order = sorted[0];
+
+        if (isFirstPoll.current) {
+          lastSeenId.current = order.id;
+          isFirstPoll.current = false;
+          return;
+        }
+
+        if (order.id !== lastSeenId.current) {
+          lastSeenId.current = order.id;
+          setLatestOrder(order);
+          setHasNew(true);
+          playNotificationSound();
+        }
+      } catch {
+        // polling error, ignore
       }
+    };
 
-      if (order.id !== lastSeenId.current) {
-        lastSeenId.current = order.id;
-        setLatestOrder(order);
-        setHasNew(true);
-        playNotificationSound();
-      }
-    });
-
-    return () => unsubscribe();
+    pollOrders();
+    const interval = setInterval(pollOrders, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   const playNotificationSound = () => {

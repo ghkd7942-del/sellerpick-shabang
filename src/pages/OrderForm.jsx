@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getDocument } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import '../styles/admin.css';
@@ -42,8 +41,8 @@ export default function OrderForm() {
 
   useEffect(() => {
     (async () => {
-      const snap = await getDoc(doc(db, 'products', productId));
-      if (snap.exists()) setProduct({ id: snap.id, ...snap.data() });
+      const data = await getDocument('products', productId);
+      if (data) setProduct({ id: productId, ...data });
       setLoading(false);
     })();
   }, [productId]);

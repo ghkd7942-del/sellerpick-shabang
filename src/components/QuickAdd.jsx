@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { addDocument } from '../lib/firestoreWrite';
+import { addDocument } from '../lib/firestoreAPI';
 import useImageUpload from '../hooks/useImageUpload';
 
 const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];

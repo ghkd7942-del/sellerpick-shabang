@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { updateDocument, deleteDocument } from '../lib/firestoreAPI';
 import useProducts from '../hooks/useProducts';
 import BottomSheet from '../components/BottomSheet';
 import ProductForm from '../components/ProductForm';
@@ -22,12 +21,12 @@ export default function ProductManagement() {
     : products.filter((p) => p.category === filter);
 
   const toggleLive = async (product) => {
-    await updateDoc(doc(db, 'products', product.id), { isLive: !product.isLive });
+    await updateDocument('products', product.id, { isLive: !product.isLive });
   };
 
   const handleDelete = async (product) => {
     if (!confirm(`"${product.name}" 상품을 삭제할까요?`)) return;
-    await deleteDoc(doc(db, 'products', product.id));
+    await deleteDocument('products', product.id);
   };
 
   const liveCount = products.filter((p) => p.isLive).length;
@@ -239,7 +238,7 @@ function EditForm({ product, onClose }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'products', product.id), {
+      await updateDocument('products', product.id, {
         name,
         price: parseInt(price.replace(/[^0-9]/g, ''), 10) || 0,
         stock: parseInt(stock, 10) || 0,
