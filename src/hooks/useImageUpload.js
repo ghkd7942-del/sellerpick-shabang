@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+
+const BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
 
 export default function useImageUpload() {
   const [imageUrl, setImageUrl] = useState('');
@@ -8,35 +8,41 @@ export default function useImageUpload() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
 
-  const uploadImage = (file) => {
+  const uploadImage = async (file) => {
     if (!file) return;
 
     setUploading(true);
     setError(null);
-    setProgress(0);
+    setProgress(10);
 
-    const fileName = `products/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, fileName);
-    const task = uploadBytesResumable(storageRef, file);
+    try {
+      const fileName = `products/${Date.now()}_${file.name}`;
+      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o?name=${encodeURIComponent(fileName)}`;
 
-    task.on(
-      'state_changed',
-      (snapshot) => {
-        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-        setProgress(pct);
-      },
-      (err) => {
-        console.error('Upload error:', err);
-        setError(err.message);
-        setUploading(false);
-      },
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        setImageUrl(url);
-        setUploading(false);
-        setProgress(100);
+      setProgress(30);
+
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type || 'image/jpeg' },
+        body: file,
+      });
+
+      setProgress(80);
+
+      if (!res.ok) {
+        throw new Error('업로드 실패: ' + res.status);
       }
-    );
+
+      const data = await res.json();
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(data.name)}?alt=media&token=${data.downloadTokens}`;
+
+      setImageUrl(downloadUrl);
+      setProgress(100);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(err.message);
+    }
+    setUploading(false);
   };
 
   const resetImage = () => {
