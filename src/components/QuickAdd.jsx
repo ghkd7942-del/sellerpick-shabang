@@ -57,9 +57,12 @@ export default function QuickAdd({ onClose, onSuccess }) {
         createdAt: Timestamp.now(),
       };
 
-      // 서버 확인을 기다리지 않고 로컬에 바로 저장 (fire-and-forget)
+      // 서버 저장 대기 (20초 타임아웃)
       const newRef = doc(collection(db, 'products'));
-      setDoc(newRef, productData);
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('저장 시간 초과')), 20000)
+      );
+      await Promise.race([setDoc(newRef, productData), timeout]);
 
       onSuccess?.();
       onClose();
