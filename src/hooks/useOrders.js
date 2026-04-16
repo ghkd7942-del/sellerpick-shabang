@@ -1,38 +1,31 @@
-import { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function useOrders(limitCount = 20) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const q = query(
-      collection(db, 'orders'),
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setOrders(data);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Orders subscription error:', err);
-        setError(err);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+  const fetchOrders = useCallback(async () => {
+    try {
+      const q = query(
+        collection(db, 'orders'),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+      const snap = await getDocs(q);
+      setOrders(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    } catch (err) {
+      console.error('Orders fetch error:', err);
+    }
+    setLoading(false);
   }, [limitCount]);
 
-  return { orders, loading, error };
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  return { orders, loading, refetch: fetchOrders };
 }
