@@ -9,7 +9,7 @@ export default function useImageUpload() {
   const [error, setError] = useState(null);
 
   const uploadImage = async (file) => {
-    if (!file) return;
+    if (!file) return null;
 
     setUploading(true);
     setError(null);
@@ -27,22 +27,27 @@ export default function useImageUpload() {
         body: file,
       });
 
-      setProgress(80);
-
       if (!res.ok) {
         throw new Error('업로드 실패: ' + res.status);
       }
 
+      setProgress(80);
+
       const data = await res.json();
-      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(data.name)}?alt=media&token=${data.downloadTokens}`;
+      const objectName = encodeURIComponent(data.name);
+      const token = data.downloadTokens;
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${objectName}?alt=media&token=${token}`;
 
       setImageUrl(downloadUrl);
       setProgress(100);
+      setUploading(false);
+      return downloadUrl;
     } catch (err) {
       console.error('Upload error:', err);
       setError(err.message);
+      setUploading(false);
+      return null;
     }
-    setUploading(false);
   };
 
   const resetImage = () => {

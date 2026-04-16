@@ -6,6 +6,7 @@ const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];
 
 export default function QuickAdd({ onClose, onSuccess }) {
   const fileInputRef = useRef(null);
+  const uploadPromiseRef = useRef(null);
   const { imageUrl, uploading, progress, uploadImage, resetImage } = useImageUpload();
   const [step, setStep] = useState('camera');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -30,8 +31,8 @@ export default function QuickAdd({ onClose, onSuccess }) {
     setPreviewUrl(localUrl);
     setStep('info');
 
-    // 백그라운드 업로드 시작
-    uploadImage(file);
+    // 백그라운드 업로드 시작 (Promise 저장)
+    uploadPromiseRef.current = uploadImage(file);
   };
 
   const formatPrice = (val) => {
@@ -45,16 +46,23 @@ export default function QuickAdd({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
+      // 업로드 완료 대기 (이미 완료됐으면 즉시 반환)
+      let finalImageUrl = imageUrl;
+      if (uploadPromiseRef.current) {
+        const result = await uploadPromiseRef.current;
+        finalImageUrl = result || imageUrl;
+      }
+
       const docId = await addDocument('products', {
         name,
         price: parseInt(price.replace(/[^0-9]/g, ''), 10),
         stock: 99,
-        imageUrl: imageUrl || '',
+        imageUrl: finalImageUrl || '',
         category: category || '',
         options: '',
         isLive: true,
       });
-      console.log('Product saved:', docId);
+      console.log('Product saved:', docId, 'imageUrl:', finalImageUrl);
 
       onSuccess?.();
       onClose();
