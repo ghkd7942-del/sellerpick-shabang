@@ -1,7 +1,26 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useOrders from '../hooks/useOrders';
+import { updateDocument } from '../lib/firestoreAPI';
+import { toCsv, downloadCsv, timestamp, ORDER_CSV_HEADERS, csvToObjects } from '../lib/csv';
+import { findCourierCode, getCourier } from '../lib/couriers';
+import BottomSheet from '../components/BottomSheet';
 import '../styles/admin.css';
+
+// CSV 컬럼명 별칭 — 택배사마다 다른 이름 사용
+const COL_ALIAS = {
+  orderId: ['주문번호', '주문id', 'orderid', 'order_id', '참조번호', 'reference'],
+  courier: ['택배사', '배송사', 'courier', 'carrier'],
+  tracking: ['송장번호', '운송장번호', '송장', '운송장', 'trackingnumber', 'tracking_number', 'tracking', 'invoice'],
+};
+
+function findCol(headers, aliases) {
+  const norm = (s) => String(s).toLowerCase().replace(/\s+/g, '');
+  for (const h of headers) {
+    if (aliases.some((a) => norm(h) === norm(a))) return h;
+  }
+  return null;
+}
 
 const FILTER_OPTIONS = [
   { key: 'paid', label: '입금완료' },
@@ -102,6 +121,96 @@ export default function PrintLabels() {
     setTestPrinting(true);
   };
 
+  const handleExportCsv = () => {
+    if (selectedOrders.length === 0) {
+      alert('내보낼 주문을 선택해주세요');
+      return;
+    }
+    const csv = toCsv(selectedOrders, ORDER_CSV_HEADERS);
+    downloadCsv(`주문_${timestamp()}.csv`, csv);
+  };
+
+  // === 송장번호 일괄 업로드 ===
+  const fileInputRef = useRef(null);
+  const [importPreview, setImportPreview] = useState(null); // { matched: [{order, courierCode, tracking}], skipped: [...], error? }
+  const [importing, setImporting] = useState(false);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 재업로드 가능하도록
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const { headers, data } = csvToObjects(text);
+
+      const idCol = findCol(headers, COL_ALIAS.orderId);
+      const courierCol = findCol(headers, COL_ALIAS.courier);
+      const trackCol = findCol(headers, COL_ALIAS.tracking);
+
+      if (!idCol || !trackCol) {
+        setImportPreview({
+          matched: [], skipped: [],
+          error: `CSV에 필수 컬럼이 없어요.\n찾은 컬럼: ${headers.join(', ') || '(없음)'}\n필요: 주문번호, 송장번호`,
+        });
+        return;
+      }
+
+      const ordersById = new Map(orders.map((o) => [o.id, o]));
+      const matched = [];
+      const skipped = [];
+
+      data.forEach((row, i) => {
+        const orderId = row[idCol];
+        const tracking = row[trackCol];
+        const courierName = courierCol ? row[courierCol] : '';
+        const order = ordersById.get(orderId);
+
+        if (!orderId || !tracking) {
+          skipped.push({ row: i + 2, reason: '주문번호 또는 송장번호 누락', orderId });
+        } else if (!order) {
+          skipped.push({ row: i + 2, reason: '일치하는 주문 없음', orderId });
+        } else {
+          matched.push({
+            order,
+            courierCode: findCourierCode(courierName),
+            tracking: tracking.trim(),
+          });
+        }
+      });
+
+      setImportPreview({ matched, skipped });
+    } catch (err) {
+      setImportPreview({ matched: [], skipped: [], error: 'CSV 파싱 실패: ' + err.message });
+    }
+  };
+
+  const handleImportApply = async () => {
+    if (!importPreview?.matched?.length) return;
+    setImporting(true);
+    let success = 0; let failed = 0;
+    for (const { order, courierCode, tracking } of importPreview.matched) {
+      try {
+        await updateDocument('orders', order.id, {
+          status: 'shipping',
+          courier: courierCode,
+          trackingNumber: tracking,
+          shippedAt: new Date(),
+        });
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+    setImporting(false);
+    setImportPreview(null);
+    alert(`적용 완료: ${success}건 성공${failed ? `, ${failed}건 실패` : ''}`);
+  };
+
   // testPrinting이 true로 바뀐 후 렌더 끝나면 print 호출
   useEffect(() => {
     if (!testPrinting) return;
@@ -126,18 +235,39 @@ export default function PrintLabels() {
             &#8592;
           </button>
           <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>배송 라벨 인쇄</h1>
-          <button
-            onClick={handleTestPrint}
-            style={{
-              marginLeft: 'auto', padding: '8px 12px', borderRadius: 8,
-              fontSize: '0.75rem', fontWeight: 700, minHeight: 36,
-              border: '1.5px dashed var(--color-pink)',
-              background: 'white', color: 'var(--color-pink)',
-              cursor: 'pointer',
-            }}
-          >
-            🧪 테스트 인쇄
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <button
+              onClick={handleImportClick}
+              style={{
+                padding: '8px 12px', borderRadius: 8,
+                fontSize: '0.75rem', fontWeight: 700, minHeight: 36,
+                border: '1.5px solid var(--color-teal)',
+                background: 'white', color: 'var(--color-teal)',
+                cursor: 'pointer',
+              }}
+            >
+              📤 송장업로드
+            </button>
+            <button
+              onClick={handleTestPrint}
+              style={{
+                padding: '8px 12px', borderRadius: 8,
+                fontSize: '0.75rem', fontWeight: 700, minHeight: 36,
+                border: '1.5px dashed var(--color-pink)',
+                background: 'white', color: 'var(--color-pink)',
+                cursor: 'pointer',
+              }}
+            >
+              🧪 테스트
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleImportFile}
+            style={{ display: 'none' }}
+          />
         </header>
 
         {/* 필터 */}
@@ -245,20 +375,33 @@ export default function PrintLabels() {
           </div>
         )}
 
-        {/* 인쇄 버튼 */}
+        {/* 액션 버튼 */}
         {selectedIds.size > 0 && (
           <div style={{
             position: 'fixed', bottom: 0, left: 0, right: 0,
             maxWidth: 430, margin: '0 auto',
             padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
             background: 'white', borderTop: '1px solid var(--color-gray-200)',
+            display: 'flex', gap: 8,
           }}>
+            <button
+              onClick={handleExportCsv}
+              style={{
+                flex: '0 0 auto', padding: '16px 18px', borderRadius: 10,
+                fontSize: '0.875rem', fontWeight: 700, minHeight: 52,
+                border: '1.5px solid var(--color-teal)',
+                background: 'white', color: 'var(--color-teal)',
+                cursor: 'pointer',
+              }}
+            >
+              📥 CSV
+            </button>
             <button
               className="btn-primary"
               onClick={handlePrint}
-              style={{ width: '100%', padding: '16px', fontSize: '1rem' }}
+              style={{ flex: 1, padding: '16px', fontSize: '1rem' }}
             >
-              &#128424; 라벨 인쇄하기 ({selectedIds.size}건)
+              &#128424; 라벨 인쇄 ({selectedIds.size}건)
             </button>
           </div>
         )}
@@ -306,6 +449,123 @@ export default function PrintLabels() {
           </div>
         ))}
       </div>
+
+      {/* 송장 업로드 미리보기 */}
+      <BottomSheet
+        isOpen={!!importPreview}
+        onClose={() => !importing && setImportPreview(null)}
+        title="송장 업로드 미리보기"
+      >
+        {importPreview && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
+            {importPreview.error ? (
+              <div style={{
+                padding: 14, borderRadius: 10,
+                background: '#FEF2F2', color: '#991B1B',
+                fontSize: '0.8125rem', whiteSpace: 'pre-wrap', lineHeight: 1.5,
+              }}>
+                {importPreview.error}
+                <div style={{ marginTop: 8, color: '#7F1D1D', fontSize: '0.75rem' }}>
+                  CSV 헤더에 <b>주문번호</b>와 <b>송장번호</b> 컬럼이 필요해요. 택배사 컬럼(선택)은 "택배사"로.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{
+                    flex: 1, padding: '10px 12px', borderRadius: 10,
+                    background: '#D1FAE5', color: '#065F46',
+                  }}>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 600 }}>매칭됨</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: 2 }}>
+                      {importPreview.matched.length}건
+                    </div>
+                  </div>
+                  <div style={{
+                    flex: 1, padding: '10px 12px', borderRadius: 10,
+                    background: 'var(--color-gray-100)', color: 'var(--color-gray-700)',
+                  }}>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 600 }}>스킵</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: 2 }}>
+                      {importPreview.skipped.length}건
+                    </div>
+                  </div>
+                </div>
+
+                {importPreview.matched.length > 0 && (
+                  <div style={{
+                    border: '1px solid var(--color-gray-100)', borderRadius: 10,
+                    maxHeight: 240, overflowY: 'auto',
+                  }}>
+                    {importPreview.matched.slice(0, 50).map(({ order, courierCode, tracking }, i) => (
+                      <div key={i} style={{
+                        padding: '10px 12px', fontSize: '0.75rem',
+                        borderBottom: i < Math.min(importPreview.matched.length, 50) - 1 ? '1px solid var(--color-gray-100)' : 'none',
+                      }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-gray-900)' }}>
+                          {order.buyerName} · {order.productName}
+                        </div>
+                        <div style={{ marginTop: 2, color: 'var(--color-gray-500)', fontFamily: 'monospace' }}>
+                          {getCourier(courierCode)?.name || '기타'} · {tracking}
+                        </div>
+                      </div>
+                    ))}
+                    {importPreview.matched.length > 50 && (
+                      <div style={{ padding: '8px 12px', fontSize: '0.6875rem', color: 'var(--color-gray-500)', textAlign: 'center' }}>
+                        +{importPreview.matched.length - 50}건 더
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {importPreview.skipped.length > 0 && (
+                  <details style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
+                    <summary style={{ cursor: 'pointer', padding: '6px 0' }}>
+                      스킵된 {importPreview.skipped.length}건 보기
+                    </summary>
+                    <div style={{ marginTop: 6, maxHeight: 150, overflowY: 'auto', padding: '0 4px' }}>
+                      {importPreview.skipped.slice(0, 20).map((s, i) => (
+                        <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid var(--color-gray-100)' }}>
+                          {s.row}행: {s.orderId || '(번호없음)'} — {s.reason}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setImportPreview(null)}
+                    disabled={importing}
+                    style={{
+                      flex: 1, padding: 12, borderRadius: 10,
+                      border: '1px solid var(--color-gray-200)', background: 'white',
+                      fontSize: '0.875rem', fontWeight: 600, minHeight: 48,
+                      cursor: 'pointer', opacity: importing ? 0.6 : 1,
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handleImportApply}
+                    disabled={importing || importPreview.matched.length === 0}
+                    style={{
+                      flex: 2, padding: 12, borderRadius: 10,
+                      fontSize: '0.875rem', minHeight: 48,
+                      opacity: (importing || importPreview.matched.length === 0) ? 0.6 : 1,
+                    }}
+                  >
+                    {importing ? '적용 중...' : `${importPreview.matched.length}건 적용`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }
