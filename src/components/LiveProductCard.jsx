@@ -1,4 +1,5 @@
 export default function LiveProductCard({ product, isCurrent, orderCount, onSelect }) {
+  const soldOut = (product.stock ?? 0) <= 0;
   return (
     <button
       onClick={() => onSelect(product.id)}
@@ -13,10 +14,23 @@ export default function LiveProductCard({ product, isCurrent, orderCount, onSele
         textAlign: 'left',
         position: 'relative',
         scrollSnapAlign: 'center',
+        opacity: soldOut ? 0.55 : 1,
       }}
     >
+      {/* 품절 뱃지 */}
+      {soldOut && (
+        <div style={{
+          position: 'absolute', top: 6, left: 6, zIndex: 1,
+          background: 'var(--color-gray-700)', color: 'white',
+          fontSize: '0.625rem', fontWeight: 700,
+          padding: '2px 6px', borderRadius: 4,
+        }}>
+          품절
+        </div>
+      )}
+
       {/* 판매중 뱃지 */}
-      {isCurrent && (
+      {isCurrent && !soldOut && (
         <div style={{
           position: 'absolute', top: 6, left: 6, zIndex: 1,
           background: 'var(--color-pink)', color: 'white',

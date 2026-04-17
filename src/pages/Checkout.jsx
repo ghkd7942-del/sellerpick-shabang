@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { addDocument } from '../lib/firestoreAPI';
+import { addDocument, getDocument, updateDocument } from '../lib/firestoreAPI';
 import '../styles/admin.css';
 
 const PAYMENT_METHODS = [
@@ -34,6 +34,16 @@ export default function Checkout() {
   const handlePay = async () => {
     setSubmitting(true);
     try {
+      // 최신 재고 재확인 (뷰에서 넘어온 product는 오래된 값일 수 있음)
+      const fresh = await getDocument('products', product.id);
+      const currentStock = fresh?.stock ?? 0;
+      const needed = qty || 1;
+      if (currentStock < needed) {
+        alert(`재고가 부족합니다. (남은 재고: ${currentStock}개)`);
+        setSubmitting(false);
+        return;
+      }
+
       await addDocument('orders', {
         buyerName,
         phone,
@@ -42,10 +52,14 @@ export default function Checkout() {
         productName: product.name,
         price: totalPrice,
         option: option || '',
-        qty: qty || 1,
+        qty: needed,
         paymentMethod,
         status: 'new',
       });
+
+      // 재고 차감 — 실패해도 주문은 유지 (관리자가 수동 조정)
+      updateDocument('products', product.id, { stock: currentStock - needed }).catch(() => {});
+
       navigator.vibrate?.(200);
       navigate(`/shop/${sellerSlug}/order-complete`, {
         state: {

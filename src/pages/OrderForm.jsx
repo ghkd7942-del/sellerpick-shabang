@@ -64,6 +64,10 @@ export default function OrderForm() {
       alert('옵션을 선택해주세요.');
       return;
     }
+    if (product && qty > (product.stock || 0)) {
+      alert(`재고가 부족합니다. (남은 재고: ${product.stock || 0}개)`);
+      return;
+    }
     navigate(`/shop/${sellerSlug}/checkout/${productId}`, {
       state: { ...form, qty, product },
     });
@@ -119,6 +123,9 @@ export default function OrderForm() {
   }
 
   const totalPrice = product.price * qty;
+  const stock = product.stock || 0;
+  const isSoldOut = stock <= 0;
+  const exceedsStock = qty > stock;
 
   return (
     <div className="admin-container">
@@ -185,15 +192,32 @@ export default function OrderForm() {
 
         {/* 수량 */}
         <div>
-          <label style={labelStyle}>수량</label>
+          <label style={labelStyle}>
+            수량
+            <span style={{
+              marginLeft: 8, fontSize: '0.75rem', fontWeight: 500,
+              color: isSoldOut ? 'var(--color-pink)' : 'var(--color-gray-500)',
+            }}>
+              {isSoldOut ? '품절' : `재고 ${stock}개`}
+            </span>
+          </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <button onClick={() => setQty(Math.max(1, qty - 1))} style={qtyBtn}>-</button>
+            <button onClick={() => setQty(Math.max(1, qty - 1))} style={qtyBtn} disabled={isSoldOut}>-</button>
             <span style={{ fontSize: '1.125rem', fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{qty}</span>
-            <button onClick={() => setQty(qty + 1)} style={qtyBtn}>+</button>
+            <button
+              onClick={() => setQty(Math.min(stock || 1, qty + 1))}
+              style={qtyBtn}
+              disabled={isSoldOut || qty >= stock}
+            >+</button>
             <span style={{ marginLeft: 'auto', fontSize: '1rem', fontWeight: 700, color: 'var(--color-pink)' }}>
               {totalPrice.toLocaleString('ko-KR')}원
             </span>
           </div>
+          {exceedsStock && !isSoldOut && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-pink)', marginTop: 6 }}>
+              최대 {stock}개까지 주문 가능해요
+            </div>
+          )}
         </div>
 
         {/* 구매자 정보 */}
@@ -234,9 +258,13 @@ export default function OrderForm() {
         <button
           className="btn-primary"
           onClick={handleNext}
-          style={{ width: '100%', padding: '16px', fontSize: '1rem' }}
+          disabled={isSoldOut || exceedsStock}
+          style={{
+            width: '100%', padding: '16px', fontSize: '1rem',
+            opacity: (isSoldOut || exceedsStock) ? 0.4 : 1,
+          }}
         >
-          결제하기 · {totalPrice.toLocaleString('ko-KR')}원
+          {isSoldOut ? '품절' : `결제하기 · ${totalPrice.toLocaleString('ko-KR')}원`}
         </button>
       </div>
     </div>
