@@ -43,6 +43,30 @@ export default async function handler(req, res) {
 
   const normalized = String(to).replace(/[^0-9]/g, '');
 
+  // pfId 없으면 SMS/LMS로 폴백 (알림톡 템플릿 심사 전 테스트용)
+  const useSms = !SOLAPI_PFID;
+  const smsText = text || `[알림] ${Object.values(variables).join(' / ')}`;
+  // 90바이트 이하면 SMS, 이상이면 LMS
+  const byteLen = new TextEncoder().encode(smsText).length;
+  const message = useSms
+    ? {
+        to: normalized,
+        from: SOLAPI_SENDER,
+        type: byteLen > 90 ? 'LMS' : 'SMS',
+        text: smsText,
+      }
+    : {
+        to: normalized,
+        from: SOLAPI_SENDER,
+        type: 'ATA',
+        text,
+        kakaoOptions: {
+          pfId: SOLAPI_PFID,
+          templateId,
+          variables,
+        },
+      };
+
   try {
     const response = await fetch(SOLAPI_URL, {
       method: 'POST',
@@ -50,28 +74,16 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         Authorization: signAuth(SOLAPI_API_KEY, SOLAPI_API_SECRET),
       },
-      body: JSON.stringify({
-        message: {
-          to: normalized,
-          from: SOLAPI_SENDER,
-          type: 'ATA',
-          text,
-          kakaoOptions: {
-            pfId: SOLAPI_PFID,
-            templateId,
-            variables,
-          },
-        },
-      }),
+      body: JSON.stringify({ message }),
     });
     const data = await response.json();
     if (!response.ok) {
-      console.error('[알림톡 실패]', data);
+      console.error('[메시지 발송 실패]', data);
       return res.status(response.status).json(data);
     }
-    return res.status(200).json(data);
+    return res.status(200).json({ ...data, fallback: useSms ? 'sms' : 'alimtalk' });
   } catch (err) {
-    console.error('[알림톡 에러]', err);
+    console.error('[메시지 에러]', err);
     return res.status(500).json({ error: err.message });
   }
 }
