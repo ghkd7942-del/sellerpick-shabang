@@ -4,6 +4,7 @@ import { getCollection } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import ShopTabBar from '../components/ShopTabBar';
+import { getCourier, getTrackingUrl } from '../lib/couriers';
 import '../styles/admin.css';
 
 const STEPS = [
@@ -267,6 +268,66 @@ export default function OrderTrack() {
                           </>
                         )}
                       </div>
+
+                      {/* 송장번호 카드 */}
+                      {(order.status === 'shipping' || order.status === 'done') && order.trackingNumber && (
+                        <div style={{
+                          marginTop: 12, padding: '12px 14px', borderRadius: 10,
+                          border: '1.5px solid var(--color-pink)',
+                          background: '#FFF0F3',
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)', fontWeight: 600 }}>
+                                {getCourier(order.courier)?.name || '택배'}
+                              </div>
+                              <div style={{
+                                fontSize: '0.9375rem', fontWeight: 700, marginTop: 2,
+                                fontFamily: 'monospace',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>
+                                {order.trackingNumber}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard?.writeText(order.trackingNumber);
+                                  alert('송장번호가 복사되었습니다');
+                                }}
+                                style={{
+                                  padding: '8px 10px', borderRadius: 8,
+                                  fontSize: '0.75rem', fontWeight: 600, minHeight: 36,
+                                  border: '1px solid var(--color-gray-200)',
+                                  background: 'white', color: 'var(--color-gray-700)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                복사
+                              </button>
+                              {getTrackingUrl(order.courier, order.trackingNumber) && (
+                                <a
+                                  href={getTrackingUrl(order.courier, order.trackingNumber)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    padding: '8px 12px', borderRadius: 8,
+                                    fontSize: '0.75rem', fontWeight: 700, minHeight: 36,
+                                    background: 'var(--color-pink)', color: 'white',
+                                    textDecoration: 'none',
+                                    display: 'flex', alignItems: 'center',
+                                  }}
+                                >
+                                  택배조회
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* 주문 정보 */}
                       <div style={{ marginTop: 12, fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>

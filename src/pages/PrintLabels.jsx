@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useOrders from '../hooks/useOrders';
 import '../styles/admin.css';
@@ -7,6 +7,36 @@ const FILTER_OPTIONS = [
   { key: 'paid', label: '입금완료' },
   { key: 'shipping', label: '배송중' },
   { key: 'all-printable', label: '전체 (입금+배송)' },
+];
+
+const DUMMY_ORDERS = [
+  {
+    id: 'test-1',
+    buyerName: '홍길동',
+    phone: '010-1234-5678',
+    address: '서울특별시 강남구 테헤란로 123, 456호 (역삼동)',
+    productName: '원피스',
+    option: 'M',
+    price: 29000,
+  },
+  {
+    id: 'test-2',
+    buyerName: '김영희',
+    phone: '010-9876-5432',
+    address: '경기도 성남시 분당구 정자일로 95, 102동 1203호',
+    productName: '가디건',
+    option: '베이지 / L',
+    price: 45000,
+  },
+  {
+    id: 'test-3',
+    buyerName: '이철수',
+    phone: '010-5555-1234',
+    address: '부산광역시 해운대구 우동 100-5',
+    productName: '스니커즈',
+    option: '270mm',
+    price: 89000,
+  },
 ];
 
 export default function PrintLabels() {
@@ -61,9 +91,26 @@ export default function PrintLabels() {
 
   const selectedOrders = printableOrders.filter((o) => selectedIds.has(o.id));
 
+  const [testPrinting, setTestPrinting] = useState(false);
+  const ordersToPrint = testPrinting ? DUMMY_ORDERS : selectedOrders;
+
   const handlePrint = () => {
     window.print();
   };
+
+  const handleTestPrint = () => {
+    setTestPrinting(true);
+  };
+
+  // testPrinting이 true로 바뀐 후 렌더 끝나면 print 호출
+  useEffect(() => {
+    if (!testPrinting) return;
+    const timer = setTimeout(() => {
+      window.print();
+      setTestPrinting(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [testPrinting]);
 
   return (
     <div className="admin-container">
@@ -79,6 +126,18 @@ export default function PrintLabels() {
             &#8592;
           </button>
           <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>배송 라벨 인쇄</h1>
+          <button
+            onClick={handleTestPrint}
+            style={{
+              marginLeft: 'auto', padding: '8px 12px', borderRadius: 8,
+              fontSize: '0.75rem', fontWeight: 700, minHeight: 36,
+              border: '1.5px dashed var(--color-pink)',
+              background: 'white', color: 'var(--color-pink)',
+              cursor: 'pointer',
+            }}
+          >
+            🧪 테스트 인쇄
+          </button>
         </header>
 
         {/* 필터 */}
@@ -207,18 +266,18 @@ export default function PrintLabels() {
 
       {/* ===== 인쇄 영역 — 화면에서는 숨김, 인쇄 시에만 표시 ===== */}
       <div className="print-only">
-        {selectedOrders.map((order, i) => (
+        {ordersToPrint.map((order, i) => (
           <div key={order.id} className="label-card" style={{
             pageBreakInside: 'avoid',
             border: '1px solid #ccc',
             borderRadius: 4,
             padding: '12mm 10mm',
-            marginBottom: i < selectedOrders.length - 1 ? '4mm' : 0,
+            marginBottom: i < ordersToPrint.length - 1 ? '4mm' : 0,
             fontFamily: "'Pretendard', sans-serif",
           }}>
             {/* 보내는 분 */}
             <div style={{ fontSize: '8pt', color: '#888', marginBottom: '3mm' }}>
-              보내는 분: 샤방이
+              보내는 분: 샤방이{testPrinting ? ' · TEST' : ''}
             </div>
 
             {/* 받는 분 */}

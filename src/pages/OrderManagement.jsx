@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { updateDocument } from '../lib/firestoreAPI';
 import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
+import BottomSheet from '../components/BottomSheet';
+import { COURIERS } from '../lib/couriers';
 import '../styles/admin.css';
 
 const FILTERS = [
@@ -36,20 +39,44 @@ function timeAgo(timestamp) {
 }
 
 export default function OrderManagement() {
+  const navigate = useNavigate();
   const { orders, loading } = useOrders(100);
   const [filter, setFilter] = useState('all');
   const [updating, setUpdating] = useState(null);
+  const [shippingOrder, setShippingOrder] = useState(null);
 
   const filtered = filter === 'all'
     ? orders
     : orders.filter((o) => o.status === filter);
 
-  const handleStatusChange = async (orderId, nextStatus) => {
-    setUpdating(orderId);
+  const handleStatusChange = async (order, nextStatus) => {
+    // paid → shipping은 송장 입력 바텀시트로
+    if (order.status === 'paid' && nextStatus === 'shipping') {
+      setShippingOrder(order);
+      return;
+    }
+    setUpdating(order.id);
     try {
-      await updateDocument('orders', orderId, { status: nextStatus });
+      await updateDocument('orders', order.id, { status: nextStatus });
     } catch (err) {
       alert('상태 변경 실패: ' + err.message);
+    }
+    setUpdating(null);
+  };
+
+  const handleShippingSubmit = async ({ courier, trackingNumber }) => {
+    if (!shippingOrder) return;
+    setUpdating(shippingOrder.id);
+    try {
+      await updateDocument('orders', shippingOrder.id, {
+        status: 'shipping',
+        courier: courier || '',
+        trackingNumber: trackingNumber || '',
+        shippedAt: new Date(),
+      });
+      setShippingOrder(null);
+    } catch (err) {
+      alert('배송 시작 실패: ' + err.message);
     }
     setUpdating(null);
   };
@@ -60,10 +87,22 @@ export default function OrderManagement() {
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
         padding: '0 16px', height: 56, background: 'white',
-        display: 'flex', alignItems: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid var(--color-gray-200)',
       }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>주문 관리</h1>
+        <button
+          onClick={() => navigate('/admin/print')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 14px', borderRadius: 9999,
+            fontSize: '0.8125rem', fontWeight: 700, minHeight: 40,
+            background: 'var(--color-pink)', color: 'white',
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          🖨️ 프린트하기
+        </button>
       </header>
 
       {/* 필터 탭 */}
@@ -157,10 +196,21 @@ export default function OrderManagement() {
                     </span>
                   </div>
 
+                  {/* 송장번호 표시 (배송중/완료일 때) */}
+                  {(order.status === 'shipping' || order.status === 'done') && order.trackingNumber && (
+                    <div style={{
+                      marginTop: 8, padding: '8px 10px', borderRadius: 8,
+                      background: 'var(--color-gray-50)', fontSize: '0.75rem',
+                      color: 'var(--color-gray-700)',
+                    }}>
+                      {COURIERS.find((c) => c.code === order.courier)?.name || '택배'} · {order.trackingNumber}
+                    </div>
+                  )}
+
                   {/* 상태 변경 버튼 */}
                   {action && (
                     <button
-                      onClick={() => handleStatusChange(order.id, action.next)}
+                      onClick={() => handleStatusChange(order, action.next)}
                       disabled={updating === order.id}
                       style={{
                         width: '100%', marginTop: 10, padding: '10px',
@@ -182,7 +232,113 @@ export default function OrderManagement() {
         )}
       </div>
 
+      {/* 송장 입력 바텀시트 */}
+      <BottomSheet
+        isOpen={!!shippingOrder}
+        onClose={() => setShippingOrder(null)}
+        title="배송 시작"
+      >
+        {shippingOrder && (
+          <ShippingForm
+            order={shippingOrder}
+            submitting={updating === shippingOrder.id}
+            onSubmit={handleShippingSubmit}
+            onSkip={() => handleShippingSubmit({ courier: '', trackingNumber: '' })}
+          />
+        )}
+      </BottomSheet>
+
       <BottomTabBar />
+    </div>
+  );
+}
+
+function ShippingForm({ order, submitting, onSubmit, onSkip }) {
+  const [courier, setCourier] = useState('cj');
+  const [trackingNumber, setTrackingNumber] = useState('');
+
+  const canSubmit = !!courier && trackingNumber.trim().length > 0 && !submitting;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 16 }}>
+      <div style={{
+        padding: '10px 12px', background: 'var(--color-gray-50)', borderRadius: 8,
+        fontSize: '0.8125rem', color: 'var(--color-gray-700)',
+      }}>
+        <div style={{ fontWeight: 700 }}>{order.buyerName}</div>
+        <div style={{ marginTop: 2, color: 'var(--color-gray-500)' }}>
+          {order.productName}{order.option ? ` · ${order.option}` : ''}
+        </div>
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-gray-700)', marginBottom: 6 }}>
+          택배사
+        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {COURIERS.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => setCourier(c.code)}
+              style={{
+                padding: '8px 12px', borderRadius: 8,
+                fontSize: '0.8125rem', fontWeight: 600, minHeight: 40,
+                border: '1.5px solid',
+                borderColor: courier === c.code ? 'var(--color-pink)' : 'var(--color-gray-200)',
+                background: courier === c.code ? 'var(--color-pink)' : 'white',
+                color: courier === c.code ? 'white' : 'var(--color-gray-700)',
+                cursor: 'pointer',
+              }}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-gray-700)', marginBottom: 6 }}>
+          송장번호
+        </label>
+        <input
+          inputMode="numeric"
+          placeholder="숫자만 입력"
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value.replace(/[^0-9a-zA-Z-]/g, ''))}
+          style={{
+            width: '100%', padding: '12px 14px',
+            border: '1px solid var(--color-gray-200)', borderRadius: 10,
+            fontSize: '0.9375rem', outline: 'none', minHeight: 44,
+          }}
+        />
+      </div>
+
+      <button
+        type="button"
+        className="btn-primary"
+        onClick={() => onSubmit({ courier, trackingNumber: trackingNumber.trim() })}
+        disabled={!canSubmit}
+        style={{
+          width: '100%', padding: '14px', fontSize: '1rem', marginTop: 4,
+          opacity: canSubmit ? 1 : 0.6,
+        }}
+      >
+        {submitting ? '처리 중...' : '배송 시작'}
+      </button>
+
+      <button
+        type="button"
+        onClick={onSkip}
+        disabled={submitting}
+        style={{
+          width: '100%', padding: '10px', fontSize: '0.8125rem',
+          color: 'var(--color-gray-500)', background: 'none', border: 'none',
+          cursor: 'pointer', opacity: submitting ? 0.6 : 1,
+        }}
+      >
+        송장번호 없이 배송중으로 변경
+      </button>
     </div>
   );
 }

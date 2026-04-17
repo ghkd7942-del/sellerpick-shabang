@@ -61,6 +61,29 @@ export default function AdminDashboard() {
           </div>
         </button>
 
+        {/* 송장 인쇄 카드 */}
+        <button
+          onClick={() => navigate('/admin/print')}
+          style={{
+            width: '100%', padding: '14px 18px', borderRadius: 12,
+            background: 'white', border: '1.5px solid var(--color-gray-200)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            minHeight: 56, cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: '1.5rem' }}>🖨️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-gray-900)' }}>
+              송장 인쇄
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: 2 }}>
+              입금완료 주문 라벨 일괄 출력 · 테스트 가능
+            </div>
+          </div>
+          <span style={{ color: 'var(--color-gray-300)', fontSize: '1.125rem' }}>&#8250;</span>
+        </button>
+
         <RecentOrders orders={orders} loading={ordersLoading} />
         <ProductList products={products} loading={productsLoading} refetch={refetchProducts} />
 

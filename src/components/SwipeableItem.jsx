@@ -1,27 +1,31 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 const ACTIONS_WIDTH = 160; // 수정+삭제 버튼 너비 합계
 
 export default function SwipeableItem({ children, onEdit, onDelete }) {
   const [offset, setOffset] = useState(0);
   const [opened, setOpened] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const startX = useRef(0);
   const currentX = useRef(0);
   const isDragging = useRef(false);
-  const transitioning = useRef(false);
+  const moved = useRef(false);
+  const containerRef = useRef(null);
 
   const handleStart = (e) => {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     startX.current = clientX;
     currentX.current = opened ? -ACTIONS_WIDTH : 0;
     isDragging.current = true;
-    transitioning.current = false;
+    moved.current = false;
+    setAnimating(false);
   };
 
   const handleMove = (e) => {
     if (!isDragging.current) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const deltaX = clientX - startX.current;
+    if (Math.abs(deltaX) > 3) moved.current = true;
     const newOffset = Math.max(-ACTIONS_WIDTH, Math.min(0, currentX.current + deltaX));
     setOffset(newOffset);
   };
@@ -29,7 +33,7 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
   const handleEnd = () => {
     if (!isDragging.current) return;
     isDragging.current = false;
-    transitioning.current = true;
+    setAnimating(true);
 
     // 50% 이상 스와이프되면 열기
     if (offset < -ACTIONS_WIDTH / 2) {
@@ -41,14 +45,18 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
     }
   };
 
+  const close = useCallback(() => {
+    setAnimating(true);
+    setOffset(0);
+    setOpened(false);
+  }, []);
+
   // 외부 탭 시 닫기
-  const containerRef = useRef(null);
   useEffect(() => {
     if (!opened) return;
     const handleOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOffset(0);
-        setOpened(false);
+        close();
       }
     };
     document.addEventListener('touchstart', handleOutside);
@@ -57,11 +65,17 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
       document.removeEventListener('touchstart', handleOutside);
       document.removeEventListener('mousedown', handleOutside);
     };
-  }, [opened]);
+  }, [opened, close]);
 
-  const close = () => {
-    setOffset(0);
-    setOpened(false);
+  // 버튼 클릭: 이벤트 전파 차단 → close는 액션 완료 후
+  const handleAction = (action) => (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // 액션을 먼저 실행 (confirm 등이 close의 setState 재렌더에 간섭 안하도록 분리)
+    Promise.resolve().then(() => {
+      action?.();
+      close();
+    });
   };
 
   return (
@@ -69,16 +83,19 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
       {/* 뒤에 숨겨진 액션 버튼들 */}
       <div style={{
         position: 'absolute', top: 0, right: 0, bottom: 0,
-        display: 'flex', width: ACTIONS_WIDTH,
+        display: 'flex', width: ACTIONS_WIDTH, zIndex: 0,
       }}>
         {onEdit && (
           <button
-            onClick={() => { close(); onEdit(); }}
+            type="button"
+            onClick={handleAction(onEdit)}
+            onTouchEnd={(e) => e.stopPropagation()}
             style={{
               flex: 1, background: 'var(--color-teal)', color: 'white',
               border: 'none', cursor: 'pointer',
               fontSize: '0.875rem', fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation',
             }}
           >
             수정
@@ -86,12 +103,15 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
         )}
         {onDelete && (
           <button
-            onClick={() => { close(); onDelete(); }}
+            type="button"
+            onClick={handleAction(onDelete)}
+            onTouchEnd={(e) => e.stopPropagation()}
             style={{
               flex: 1, background: '#EF4444', color: 'white',
               border: 'none', cursor: 'pointer',
               fontSize: '0.875rem', fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation',
             }}
           >
             삭제
@@ -105,12 +125,20 @@ export default function SwipeableItem({ children, onEdit, onDelete }) {
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
         onMouseDown={handleStart}
-        onMouseMove={isDragging.current ? handleMove : undefined}
+        onMouseMove={handleMove}
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
+        onClickCapture={(e) => {
+          // 드래그 중에 발생한 click은 무시
+          if (moved.current) {
+            e.stopPropagation();
+            e.preventDefault();
+            moved.current = false;
+          }
+        }}
         style={{
           transform: `translateX(${offset}px)`,
-          transition: transitioning.current ? 'transform 0.2s ease-out' : 'none',
+          transition: animating ? 'transform 0.2s ease-out' : 'none',
           background: 'white',
           position: 'relative',
           zIndex: 1,
