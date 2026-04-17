@@ -4,6 +4,7 @@ import useOrders from '../hooks/useOrders';
 import { updateDocument } from '../lib/firestoreAPI';
 import { toCsv, downloadCsv, timestamp, ORDER_CSV_HEADERS, csvToObjects } from '../lib/csv';
 import { findCourierCode, getCourier } from '../lib/couriers';
+import { notifyShippingStarted } from '../lib/alimtalk';
 import BottomSheet from '../components/BottomSheet';
 import '../styles/admin.css';
 
@@ -201,6 +202,8 @@ export default function PrintLabels() {
           trackingNumber: tracking,
           shippedAt: new Date(),
         });
+        // 배송시작 알림톡 (fire-and-forget)
+        notifyShippingStarted(order, courierCode, tracking).catch(() => {});
         success++;
       } catch {
         failed++;

@@ -5,6 +5,7 @@ import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
 import BottomSheet from '../components/BottomSheet';
 import { COURIERS } from '../lib/couriers';
+import { notifyPaymentConfirmed, notifyShippingStarted } from '../lib/alimtalk';
 import '../styles/admin.css';
 
 const FILTERS = [
@@ -58,6 +59,10 @@ export default function OrderManagement() {
     setUpdating(order.id);
     try {
       await updateDocument('orders', order.id, { status: nextStatus });
+      // 입금확인 알림톡 (new → paid)
+      if (nextStatus === 'paid') {
+        notifyPaymentConfirmed(order).catch(() => {});
+      }
     } catch (err) {
       alert('상태 변경 실패: ' + err.message);
     }
@@ -74,6 +79,10 @@ export default function OrderManagement() {
         trackingNumber: trackingNumber || '',
         shippedAt: new Date(),
       });
+      // 배송시작 알림톡 (송장번호 있을 때만)
+      if (trackingNumber) {
+        notifyShippingStarted(shippingOrder, courier, trackingNumber).catch(() => {});
+      }
       setShippingOrder(null);
     } catch (err) {
       alert('배송 시작 실패: ' + err.message);
