@@ -22,10 +22,10 @@ export default function Footer({ compact = false }) {
         <Link to="/legal/refund" style={linkStyle}>환불·교환 정책</Link>
       </div>
       <div>
-        <div>온빛 · 대표 ○○○ · 사업자등록번호 000-00-00000</div>
-        <div>통신판매업 신고 제○○○○-서울○○-0000호</div>
-        <div>주소 서울특별시 ○○구 ○○로 00</div>
-        <div>고객센터 010-0000-0000 · contact@example.com</div>
+        <div>온빛 · 대표 황유진 · 사업자등록번호 882-39-01416</div>
+        <div>통신판매업 신고 신청 중</div>
+        <div>주소 경기도 양주시 덕정11길 29, 2동 202호 (덕정동, 주아팰리스)</div>
+        <div>고객센터 010-8555-6595 · ghkd7942@gmail.com</div>
         <div style={{ marginTop: 8, fontSize: '0.625rem' }}>
           © {new Date().getFullYear()} 셀러픽 (SellerPick). 본 사이트의 결제는 토스페이먼츠를 통해 안전하게 처리됩니다.
         </div>

@@ -1,18 +1,19 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/admin.css';
 
-// TODO: 사업자등록 완료 후 실제 정보로 교체
+// 사업자등록증 기반 실제 정보
+// TODO: 통신판매업 신고 완료 시 telesalesNumber 교체
 const BUSINESS = {
   name: '온빛',
-  ceo: '○○○',
-  bizNumber: '000-00-00000',
-  telesalesNumber: '제○○○○-서울○○-0000호',
-  address: '서울특별시 ○○구 ○○로 00, 000호',
-  phone: '010-0000-0000',
-  email: 'contact@example.com',
+  ceo: '황유진',
+  bizNumber: '882-39-01416',
+  telesalesNumber: '신청 중',
+  address: '경기도 양주시 덕정11길 29, 2동 202호 (덕정동, 주아팰리스)',
+  phone: '010-8555-6595',
+  email: 'ghkd7942@gmail.com',
   hosting: 'Vercel Inc.',
   serviceName: '셀러픽 (SellerPick)',
-  launchDate: '2025-04-01',
+  launchDate: '2026-04-02',
 };
 
 const SECTIONS = {
