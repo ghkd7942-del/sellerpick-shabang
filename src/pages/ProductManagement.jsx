@@ -7,6 +7,8 @@ import BottomSheet from '../components/BottomSheet';
 import ProductForm from '../components/ProductForm';
 import QuickAdd from '../components/QuickAdd';
 import ProductDetailView from '../components/ProductDetailView';
+import EditShopProduct from '../components/EditShopProduct';
+import ViewSwitcher from '../components/ViewSwitcher';
 import FAB from '../components/FAB';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
@@ -57,9 +59,12 @@ export default function ProductManagement() {
         borderBottom: '1px solid var(--color-gray-200)',
       }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>상품 관리</h1>
-        <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
-          {products.length}개 · 라이브 {liveCount}개
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>
+            {products.length}개 · 라이브 {liveCount}
+          </span>
+          <ViewSwitcher />
+        </div>
       </header>
 
       {/* 요약 카드 */}
@@ -289,7 +294,15 @@ export default function ProductManagement() {
         onClose={() => setDetailProduct(null)}
         title="상품 상세"
       >
-        {detailProduct && <ProductDetailView product={detailProduct} />}
+        {detailProduct && (
+          <ProductDetailView
+            product={detailProduct}
+            onEdit={() => {
+              setEditProduct(detailProduct);
+              setDetailProduct(null);
+            }}
+          />
+        )}
       </BottomSheet>
 
       {/* 수정 바텀시트 */}
@@ -299,7 +312,7 @@ export default function ProductManagement() {
         title="상품 수정"
       >
         {editProduct && (
-          <EditForm
+          <EditShopProduct
             product={editProduct}
             onClose={() => setEditProduct(null)}
           />

@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { updateDocument, deleteDocument } from '../lib/firestoreAPI';
 import SwipeableItem from './SwipeableItem';
 import BottomSheet from './BottomSheet';
+import ProductDetailView from './ProductDetailView';
+import EditShopProduct from './EditShopProduct';
 
 export default function ProductList({ products, loading, refetch }) {
   const [editProduct, setEditProduct] = useState(null);
+  const [detailProduct, setDetailProduct] = useState(null);
 
   const handleDelete = async (product) => {
     if (!confirm(`"${product.name}" 상품을 삭제할까요?`)) return;
@@ -54,13 +57,17 @@ export default function ProductList({ products, loading, refetch }) {
               onEdit={() => setEditProduct(product)}
               onDelete={() => handleDelete(product)}
             >
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 12,
-                padding: '12px 16px',
-                minHeight: 44,
-              }}>
+              <div
+                onClick={() => setDetailProduct(product)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  padding: '12px 16px',
+                  minHeight: 44,
+                  cursor: 'pointer',
+                }}
+              >
                 <div style={{
                   width: 48,
                   height: 48,
@@ -118,6 +125,23 @@ export default function ProductList({ products, loading, refetch }) {
         ))}
       </div>
 
+      {/* 상세 바텀시트 */}
+      <BottomSheet
+        isOpen={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        title="상품 상세"
+      >
+        {detailProduct && (
+          <ProductDetailView
+            product={detailProduct}
+            onEdit={() => {
+              setEditProduct(detailProduct);
+              setDetailProduct(null);
+            }}
+          />
+        )}
+      </BottomSheet>
+
       {/* 수정 바텀시트 */}
       <BottomSheet
         isOpen={!!editProduct}
@@ -125,7 +149,7 @@ export default function ProductList({ products, loading, refetch }) {
         title="상품 수정"
       >
         {editProduct && (
-          <EditProductForm
+          <EditShopProduct
             product={editProduct}
             onClose={() => { setEditProduct(null); refetch?.(); }}
           />

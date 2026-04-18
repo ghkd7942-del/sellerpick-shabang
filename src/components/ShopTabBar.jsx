@@ -1,15 +1,18 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import useLiveSession from '../hooks/useLiveSession';
+import useCart from '../hooks/useCart';
 
 export default function ShopTabBar() {
   const { sellerSlug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { session } = useLiveSession();
+  const { totalCount } = useCart();
 
   const tabs = [
     { path: `/shop/${sellerSlug}`, label: '쇼핑몰', icon: '🛍️' },
     { path: `/shop/${sellerSlug}/live`, label: '라이브몰', icon: '🔴', liveIndicator: !!session?.isActive },
+    { path: `/shop/${sellerSlug}/cart`, label: '장바구니', icon: '🛒', badge: totalCount },
     { path: `/shop/${sellerSlug}/orders`, label: '주문내역', icon: '📦' },
     { path: `/shop/${sellerSlug}/my`, label: '마이', icon: '👤' },
   ];
@@ -42,13 +45,14 @@ export default function ShopTabBar() {
               border: 'none',
               cursor: 'pointer',
               color: isActive ? 'var(--color-pink)' : 'var(--color-gray-500)',
-              fontSize: '0.625rem',
+              fontSize: '0.5625rem',
               fontWeight: isActive ? 700 : 400,
               minHeight: 44,
               position: 'relative',
+              whiteSpace: 'nowrap',
             }}
           >
-            <span style={{ fontSize: '1.25rem', position: 'relative' }}>
+            <span style={{ fontSize: '1.125rem', position: 'relative' }}>
               {tab.icon}
               {tab.liveIndicator && (
                 <span style={{
@@ -58,6 +62,19 @@ export default function ShopTabBar() {
                   boxShadow: '0 0 0 2px white',
                   animation: 'pulse 1.5s infinite',
                 }} />
+              )}
+              {tab.badge > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -10,
+                  minWidth: 14, height: 14, borderRadius: 7,
+                  padding: '0 4px',
+                  background: 'var(--color-pink)', color: 'white',
+                  fontSize: '0.5625rem', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 0 2px white',
+                }}>
+                  {tab.badge}
+                </span>
               )}
             </span>
             <span>{tab.label}</span>

@@ -10,6 +10,7 @@ import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import FAB from '../components/FAB';
 import QuickAdd from '../components/QuickAdd';
+import ViewSwitcher from '../components/ViewSwitcher';
 import '../styles/admin.css';
 
 export default function LiveMall() {
@@ -51,7 +52,8 @@ export default function LiveMall() {
               <span className="live-dot" />LIVE
             </span>
           )}
-          {user ? (
+          <ViewSwitcher slug={sellerSlug} />
+          {user && (
             <button
               onClick={() => navigate(`/shop/${sellerSlug}/my`)}
               style={{
@@ -62,18 +64,6 @@ export default function LiveMall() {
               }}
             >
               {(user.displayName || user.email || '?')[0]}
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate(`/shop/${sellerSlug}/login`)}
-              style={{
-                fontSize: '0.75rem', fontWeight: 600,
-                color: 'var(--color-pink)', padding: '6px 10px',
-                border: '1px solid var(--color-pink)', borderRadius: 8,
-                minHeight: 32,
-              }}
-            >
-              로그인
             </button>
           )}
         </div>
@@ -121,6 +111,7 @@ export default function LiveMall() {
                   key={product.id}
                   product={product}
                   isCurrent={isCurrent}
+                  onDetail={() => navigate(`/shop/${sellerSlug}/product/${product.id}`)}
                   onOrder={() => navigate(`/shop/${sellerSlug}/order/${product.id}`)}
                 />
               );

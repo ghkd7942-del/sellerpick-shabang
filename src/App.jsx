@@ -13,6 +13,8 @@ import SellerSettings from './pages/SellerSettings';
 import CustomerManagement from './pages/CustomerManagement';
 import ShopHome from './pages/ShopHome';
 import LiveMall from './pages/LiveMall';
+import ProductDetail from './pages/ProductDetail';
+import Cart from './pages/Cart';
 import OrderForm from './pages/OrderForm';
 import Checkout from './pages/Checkout';
 import OrderComplete from './pages/OrderComplete';
@@ -45,6 +47,8 @@ function App() {
           {/* 고객 — 로그인 불필요 */}
           <Route path="/shop/:sellerSlug" element={<ShopHome />} />
           <Route path="/shop/:sellerSlug/live" element={<LiveMall />} />
+          <Route path="/shop/:sellerSlug/product/:productId" element={<ProductDetail />} />
+          <Route path="/shop/:sellerSlug/cart" element={<Cart />} />
           <Route path="/shop/:sellerSlug/order/:productId" element={<OrderForm />} />
           <Route path="/shop/:sellerSlug/checkout/:productId" element={<Checkout />} />
           <Route path="/shop/:sellerSlug/order-complete" element={<OrderComplete />} />

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import ViewSwitcher from './ViewSwitcher';
 
 export default function AdminHeader() {
   const navigate = useNavigate();
@@ -24,21 +25,7 @@ export default function AdminHeader() {
         샤방이 관리자
       </h1>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: 'var(--color-pink)',
-            color: 'white',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            padding: '4px 10px',
-            borderRadius: 9999,
-          }}
-        >
-          <span className="live-dot" />
-          LIVE
-        </span>
+        <ViewSwitcher />
         <button
           onClick={() => navigate('/admin/settings')}
           style={{
@@ -47,13 +34,14 @@ export default function AdminHeader() {
             minWidth: 32, minHeight: 32,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
+          title="설정"
         >
           &#9881;
         </button>
         <button
           onClick={logout}
           style={{
-            fontSize: '0.75rem',
+            fontSize: '0.6875rem',
             color: 'var(--color-gray-500)',
             padding: '6px 4px',
             minHeight: 32,

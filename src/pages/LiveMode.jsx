@@ -4,6 +4,7 @@ import useProducts from '../hooks/useProducts';
 import useOrders from '../hooks/useOrders';
 import useLiveSession from '../hooks/useLiveSession';
 import useOrderNotification from '../hooks/useOrderNotification';
+import { updateDocument } from '../lib/firestoreAPI';
 import LiveProductCard from '../components/LiveProductCard';
 import OrderToast from '../components/OrderToast';
 import QuickAdd from '../components/QuickAdd';
@@ -28,6 +29,25 @@ export default function LiveMode() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [elapsed, setElapsed] = useState('00:00');
   const [youtubeInput, setYoutubeInput] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [starting, setStarting] = useState(false);
+
+  // 상품이 로드되면 라이브 상품은 기본 선택
+  useEffect(() => {
+    if (products.length > 0 && selectedIds.size === 0) {
+      const initial = new Set(products.filter((p) => p.isLive).map((p) => p.id));
+      if (initial.size > 0) setSelectedIds(initial);
+    }
+  }, [products, selectedIds.size]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const liveProducts = useMemo(() =>
     products.filter((p) => p.isLive),
@@ -96,18 +116,19 @@ export default function LiveMode() {
         </header>
 
         <div style={{
-          padding: 24, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          minHeight: 'calc(100vh - 56px)', gap: 20, textAlign: 'center',
+          padding: '20px 16px 120px',
+          display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          <div style={{ fontSize: '4rem' }}>&#128308;</div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>라이브 방송 준비</h2>
-          <p style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
-            라이브 상품 {liveProducts.length}개 준비됨
-          </p>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem' }}>&#128308;</div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: 4 }}>라이브 방송 준비</h2>
+            <p style={{ color: 'var(--color-gray-500)', fontSize: '0.8125rem', marginTop: 2 }}>
+              방송할 상품을 선택하세요
+            </p>
+          </div>
 
           {/* 유튜브 링크 입력 */}
-          <div style={{ width: '100%', textAlign: 'left' }}>
+          <div style={{ textAlign: 'left' }}>
             <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-gray-700)', marginBottom: 6, display: 'block' }}>
               유튜브 라이브 링크 (선택)
             </label>
@@ -126,27 +147,161 @@ export default function LiveMode() {
             </p>
           </div>
 
+          {/* 상품 선택 */}
+          <div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: 8,
+            }}>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-gray-700)' }}>
+                방송 상품 선택
+              </label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setSelectedIds(new Set(products.map((p) => p.id)))}
+                  style={pickBtnStyle}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set(products.filter((p) => p.isLive).map((p) => p.id)))}
+                  style={pickBtnStyle}
+                >
+                  라이브 상품만
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  style={pickBtnStyle}
+                >
+                  해제
+                </button>
+              </div>
+            </div>
+
+            {products.length === 0 ? (
+              <div style={{
+                padding: 24, textAlign: 'center', borderRadius: 10,
+                background: 'var(--color-gray-50)',
+                color: 'var(--color-gray-500)', fontSize: '0.8125rem',
+              }}>
+                등록된 상품이 없어요
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {products.map((p) => {
+                  const isSelected = selectedIds.has(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => toggleSelect(p.id)}
+                      style={{
+                        display: 'flex', gap: 12, padding: '10px 12px',
+                        background: isSelected ? '#FFF0F3' : 'white',
+                        border: '1.5px solid',
+                        borderColor: isSelected ? 'var(--color-pink)' : 'var(--color-gray-200)',
+                        borderRadius: 10, textAlign: 'left',
+                        cursor: 'pointer', alignItems: 'center',
+                      }}
+                    >
+                      <span style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        border: '2px solid',
+                        borderColor: isSelected ? 'var(--color-pink)' : 'var(--color-gray-300)',
+                        background: isSelected ? 'var(--color-pink)' : 'white',
+                        color: 'white', fontSize: '0.75rem', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {isSelected ? '✓' : ''}
+                      </span>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 8, flexShrink: 0,
+                        background: p.imageUrl
+                          ? `url(${p.imageUrl}) center/cover`
+                          : 'var(--color-gray-200)',
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: '0.875rem', fontWeight: 600,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {p.name}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem', color: 'var(--color-pink)', fontWeight: 700,
+                          marginTop: 2,
+                        }}>
+                          {p.price?.toLocaleString('ko-KR')}원
+                        </div>
+                      </div>
+                      {p.isLive ? (
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 700,
+                          background: '#D1FAE5', color: '#065F46',
+                          padding: '2px 6px', borderRadius: 4, flexShrink: 0,
+                        }}>LIVE</span>
+                      ) : (
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 700,
+                          background: 'var(--color-gray-100)', color: 'var(--color-gray-700)',
+                          padding: '2px 6px', borderRadius: 4, flexShrink: 0,
+                        }}>쇼핑몰</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 하단 방송 시작 버튼 */}
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          maxWidth: 430, margin: '0 auto',
+          padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          background: 'white', borderTop: '1px solid var(--color-gray-200)',
+        }}>
           <button
-            onClick={() => {
-              const id = youtubeInput.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/)?.[1] || youtubeInput.trim();
-              startSession(liveProducts.map((p) => p.id), id);
+            onClick={async () => {
+              if (starting) return;
+              if (selectedIds.size === 0) {
+                alert('방송 상품을 한 개 이상 선택해주세요.');
+                return;
+              }
+              setStarting(true);
+              try {
+                // 선택된 쇼핑몰 상품은 isLive=true로 승격
+                const toPromote = products.filter(
+                  (p) => selectedIds.has(p.id) && !p.isLive
+                );
+                if (toPromote.length > 0) {
+                  await Promise.all(
+                    toPromote.map((p) => updateDocument('products', p.id, { isLive: true }))
+                  );
+                }
+                const id = youtubeInput.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/)?.[1] || youtubeInput.trim();
+                await startSession([...selectedIds], id);
+              } catch (err) {
+                alert('방송 시작 실패: ' + err.message);
+              }
+              setStarting(false);
             }}
-            disabled={liveProducts.length === 0}
+            disabled={selectedIds.size === 0 || starting}
             style={{
-              background: 'var(--color-pink)', color: 'white',
-              padding: '18px 48px', borderRadius: 16,
-              fontSize: '1.25rem', fontWeight: 700, minHeight: 64,
-              boxShadow: '0 4px 16px rgba(255,75,110,0.4)',
-              opacity: liveProducts.length === 0 ? 0.4 : 1,
+              width: '100%', padding: '16px', borderRadius: 16,
+              background: selectedIds.size === 0 ? 'var(--color-gray-200)' : 'var(--color-pink)',
+              color: 'white',
+              fontSize: '1.125rem', fontWeight: 700, minHeight: 56,
+              border: 'none',
+              boxShadow: selectedIds.size === 0 ? 'none' : '0 4px 16px rgba(255,75,110,0.4)',
+              cursor: selectedIds.size === 0 || starting ? 'not-allowed' : 'pointer',
+              opacity: starting ? 0.7 : 1,
             }}
           >
-            &#128308; 방송 시작
+            {starting
+              ? '방송 준비 중...'
+              : `🔴 방송 시작${selectedIds.size > 0 ? ` · ${selectedIds.size}개 상품` : ''}`}
           </button>
-          {liveProducts.length === 0 && (
-            <p style={{ color: 'var(--color-pink)', fontSize: '0.8125rem' }}>
-              먼저 상품을 등록해주세요
-            </p>
-          )}
         </div>
 
         <FAB onClick={() => setQuickAddOpen(true)} />
@@ -295,3 +450,11 @@ export default function LiveMode() {
     </div>
   );
 }
+
+const pickBtnStyle = {
+  fontSize: '0.6875rem', fontWeight: 700,
+  padding: '4px 10px', borderRadius: 6,
+  border: '1px solid var(--color-gray-200)',
+  background: 'white', color: 'var(--color-gray-700)',
+  cursor: 'pointer', minHeight: 28,
+};

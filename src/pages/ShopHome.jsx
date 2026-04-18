@@ -9,6 +9,7 @@ import ProductCard from '../components/ProductCard';
 import FAB from '../components/FAB';
 import BottomSheet from '../components/BottomSheet';
 import ShopProductForm from '../components/ShopProductForm';
+import ViewSwitcher from '../components/ViewSwitcher';
 import '../styles/admin.css';
 
 export default function ShopHome() {
@@ -30,8 +31,9 @@ export default function ShopHome() {
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
           {sellerSlug} 쇼핑몰 &#128722;
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {user ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ViewSwitcher slug={sellerSlug} />
+          {user && (
             <button
               onClick={() => navigate(`/shop/${sellerSlug}/my`)}
               style={{
@@ -42,18 +44,6 @@ export default function ShopHome() {
               }}
             >
               {(user.displayName || user.email || '?')[0]}
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate(`/shop/${sellerSlug}/login`)}
-              style={{
-                fontSize: '0.75rem', fontWeight: 600,
-                color: 'var(--color-pink)', padding: '6px 10px',
-                border: '1px solid var(--color-pink)', borderRadius: 8,
-                minHeight: 32,
-              }}
-            >
-              로그인
             </button>
           )}
         </div>
@@ -74,6 +64,7 @@ export default function ShopHome() {
               <ProductCard
                 key={product.id}
                 product={product}
+                onDetail={() => navigate(`/shop/${sellerSlug}/product/${product.id}`)}
                 onOrder={() => navigate(`/shop/${sellerSlug}/order/${product.id}`)}
               />
             ))}
