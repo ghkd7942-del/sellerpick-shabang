@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useLiveSession from '../hooks/useLiveSession';
 import useAuth from '../hooks/useAuth';
@@ -8,12 +8,23 @@ import ShopTabBar from '../components/ShopTabBar';
 import Footer from '../components/Footer';
 import '../styles/admin.css';
 
+// 프리뷰용 더미 유튜브 영상 ID (저작권 무관 샘플)
+const PREVIEW_VIDEO_ID = 'jNQXAC9IVRw';
+
 export default function ShopHome() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products, loading } = useLiveProducts();
   const { session } = useLiveSession();
+  const [searchParams] = useSearchParams();
+  const previewMode = searchParams.get('preview'); // 'live' | 'shop' | null
+
+  // 프리뷰 모드 강제 적용 (실제 session 무시)
+  const isLiveView = previewMode === 'live' ? true
+    : previewMode === 'shop' ? false
+    : !!session?.isActive;
+  const previewVideoId = previewMode === 'live' ? PREVIEW_VIDEO_ID : (session?.youtubeVideoId || '');
 
   // 현재 방송 상품을 맨 위로
   const sortedProducts = useMemo(() => {
@@ -38,7 +49,7 @@ export default function ShopHome() {
           {sellerSlug} &#128722;
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {session?.isActive && (
+          {isLiveView && (
             <span style={{
               display: 'inline-flex', alignItems: 'center',
               background: 'var(--color-pink)', color: 'white',
@@ -77,10 +88,35 @@ export default function ShopHome() {
       </header>
 
       <div className="admin-content">
+        {/* 프리뷰 모드 배너 */}
+        {previewMode && (
+          <div style={{
+            padding: '8px 12px', borderRadius: 8,
+            background: '#FEF3C7', color: '#92400E',
+            fontSize: '0.75rem', fontWeight: 600, textAlign: 'center',
+          }}>
+            {previewMode === 'live' ? '🎬 라이브 모드 미리보기' : '🛍️ 쇼핑몰 모드 미리보기'}
+            {' · '}
+            <button
+              onClick={() => navigate(`/shop/${sellerSlug}?preview=${previewMode === 'live' ? 'shop' : 'live'}`)}
+              style={{ background: 'none', border: 'none', color: '#92400E', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}
+            >
+              {previewMode === 'live' ? '쇼핑몰 모드로' : '라이브 모드로'}
+            </button>
+            {' · '}
+            <button
+              onClick={() => navigate(`/shop/${sellerSlug}`)}
+              style={{ background: 'none', border: 'none', color: '#92400E', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}
+            >
+              실제 모드로
+            </button>
+          </div>
+        )}
+
         {/* 라이브 방송 중일 때만 영상 노출 (평소엔 일반 쇼핑몰) */}
-        {session?.isActive && (
+        {isLiveView && (
           <LivePlayer
-            youtubeVideoId={session?.youtubeVideoId || ''}
+            youtubeVideoId={previewVideoId}
             isActive
             bandUrl="https://band.us/band/샤방이"
           />
@@ -98,7 +134,11 @@ export default function ShopHome() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {sortedProducts.map((product) => {
-              const isCurrent = session?.isActive && product.id === session.currentProductId;
+              const isCurrent = isLiveView && (
+                previewMode === 'live'
+                  ? product === sortedProducts[0] // 프리뷰 모드: 첫 번째 상품을 방송중으로 표시
+                  : product.id === session?.currentProductId
+              );
               return (
               <div
                 key={product.id}

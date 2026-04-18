@@ -84,6 +84,50 @@ export default function AdminDashboard() {
           <span style={{ color: 'var(--color-gray-300)', fontSize: '1.125rem' }}>&#8250;</span>
         </button>
 
+        {/* 고객 화면 프리뷰 */}
+        <div style={{
+          background: 'white', borderRadius: 12, padding: 14,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          border: '1.5px solid var(--color-gray-200)',
+        }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: 4 }}>
+            👀 고객 화면 미리보기
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)', marginBottom: 10 }}>
+            두 가지 모드가 어떻게 보이는지 확인
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a
+              href="/shop/샤방이?preview=shop"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1, padding: '10px', borderRadius: 8,
+                background: 'var(--color-teal)', color: 'white',
+                textAlign: 'center', fontSize: '0.8125rem', fontWeight: 700,
+                textDecoration: 'none', minHeight: 40,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              🛍️ 쇼핑몰 모드
+            </a>
+            <a
+              href="/shop/샤방이?preview=live"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                flex: 1, padding: '10px', borderRadius: 8,
+                background: 'var(--color-pink)', color: 'white',
+                textAlign: 'center', fontSize: '0.8125rem', fontWeight: 700,
+                textDecoration: 'none', minHeight: 40,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              🎬 라이브 모드
+            </a>
+          </div>
+        </div>
+
         <RecentOrders orders={orders} loading={ordersLoading} />
         <ProductList products={products} loading={productsLoading} refetch={refetchProducts} />
 
