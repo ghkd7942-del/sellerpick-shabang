@@ -38,14 +38,16 @@ export default function ShopHome() {
           {sellerSlug} &#128722;
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center',
-            background: 'var(--color-pink)', color: 'white',
-            fontSize: '0.75rem', fontWeight: 700,
-            padding: '4px 10px', borderRadius: 9999,
-          }}>
-            <span className="live-dot" />LIVE
-          </span>
+          {session?.isActive && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center',
+              background: 'var(--color-pink)', color: 'white',
+              fontSize: '0.75rem', fontWeight: 700,
+              padding: '4px 10px', borderRadius: 9999,
+            }}>
+              <span className="live-dot" />LIVE
+            </span>
+          )}
           {user ? (
             <button
               onClick={() => navigate(`/shop/${sellerSlug}/my`)}
@@ -75,12 +77,14 @@ export default function ShopHome() {
       </header>
 
       <div className="admin-content">
-        {/* 라이브 영상 / 대기 화면 */}
-        <LivePlayer
-          youtubeVideoId={session?.youtubeVideoId || ''}
-          isActive={!!session?.isActive}
-          bandUrl="https://band.us/band/샤방이"
-        />
+        {/* 라이브 방송 중일 때만 영상 노출 (평소엔 일반 쇼핑몰) */}
+        {session?.isActive && (
+          <LivePlayer
+            youtubeVideoId={session?.youtubeVideoId || ''}
+            isActive
+            bandUrl="https://band.us/band/샤방이"
+          />
+        )}
 
         {/* 상품 목록 */}
         {loading ? (
@@ -89,7 +93,7 @@ export default function ShopHome() {
           </div>
         ) : products.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
-            현재 라이브 상품이 없습니다
+            등록된 상품이 없습니다
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
