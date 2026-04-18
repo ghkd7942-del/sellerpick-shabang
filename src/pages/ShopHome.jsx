@@ -5,6 +5,7 @@ import useLiveSession from '../hooks/useLiveSession';
 import useAuth from '../hooks/useAuth';
 import LivePlayer from '../components/LivePlayer';
 import ShopTabBar from '../components/ShopTabBar';
+import Footer from '../components/Footer';
 import '../styles/admin.css';
 
 export default function ShopHome() {
@@ -163,6 +164,7 @@ export default function ShopHome() {
           </div>
         )}
       </div>
+      <Footer />
       <ShopTabBar />
     </div>
   );

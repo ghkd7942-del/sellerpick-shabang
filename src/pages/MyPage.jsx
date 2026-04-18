@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import ShopTabBar from '../components/ShopTabBar';
+import Footer from '../components/Footer';
 import '../styles/admin.css';
 
 const inputStyle = {
@@ -175,6 +176,7 @@ export default function MyPage() {
           <MenuItem icon="📢" label="공지사항" onClick={() => alert('준비 중입니다')} last />
         </div>
       </div>
+      <Footer />
       <ShopTabBar />
     </div>
   );

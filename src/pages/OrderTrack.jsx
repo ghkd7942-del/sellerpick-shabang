@@ -4,6 +4,7 @@ import { getCollection } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import ShopTabBar from '../components/ShopTabBar';
+import Footer from '../components/Footer';
 import { getCourier, getTrackingUrl } from '../lib/couriers';
 import '../styles/admin.css';
 
@@ -348,6 +349,7 @@ export default function OrderTrack() {
           </div>
         )}
       </div>
+      <Footer />
       <ShopTabBar />
     </div>
   );

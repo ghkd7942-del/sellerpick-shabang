@@ -18,6 +18,7 @@ import OrderComplete from './pages/OrderComplete';
 import OrderTrack from './pages/OrderTrack';
 import CustomerLogin from './pages/CustomerLogin';
 import MyPage from './pages/MyPage';
+import Legal from './pages/Legal';
 
 function App() {
   return (
@@ -36,6 +37,9 @@ function App() {
           <Route path="/admin/products" element={<ProtectedRoute><ProductManagement /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><SellerSettings /></ProtectedRoute>} />
           <Route path="/admin/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
+
+          {/* 법적 페이지 (토스 심사용) */}
+          <Route path="/legal/:slug" element={<Legal />} />
 
           {/* 고객 — 로그인 불필요 */}
           <Route path="/shop/:sellerSlug" element={<ShopHome />} />

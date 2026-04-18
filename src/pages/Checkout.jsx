@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { addDocument, getDocument, updateDocument } from '../lib/firestoreAPI';
+import Footer from '../components/Footer';
 import '../styles/admin.css';
 
 const PAYMENT_METHODS = [
@@ -223,6 +224,7 @@ export default function Checkout() {
           주문 내용을 확인했으며 결제에 동의합니다
         </button>
       </div>
+      <Footer compact />
 
       {/* 결제 버튼 */}
       <div style={{

@@ -1,4 +1,5 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import Footer from '../components/Footer';
 import '../styles/admin.css';
 
 export default function OrderComplete() {
@@ -78,6 +79,7 @@ export default function OrderComplete() {
           쇼핑 계속하기
         </button>
       </div>
+      <Footer compact />
     </div>
   );
 }
