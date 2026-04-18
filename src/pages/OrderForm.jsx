@@ -65,7 +65,7 @@ export default function OrderForm() {
       return;
     }
     if (product && qty > (product.stock || 0)) {
-      alert(`재고가 부족합니다. (남은 재고: ${product.stock || 0}개)`);
+      alert('선택하신 수량으로는 주문할 수 없습니다.');
       return;
     }
     navigate(`/shop/${sellerSlug}/checkout/${productId}`, {
@@ -194,12 +194,14 @@ export default function OrderForm() {
         <div>
           <label style={labelStyle}>
             수량
-            <span style={{
-              marginLeft: 8, fontSize: '0.75rem', fontWeight: 500,
-              color: isSoldOut ? 'var(--color-pink)' : 'var(--color-gray-500)',
-            }}>
-              {isSoldOut ? '품절' : `재고 ${stock}개`}
-            </span>
+            {isSoldOut && (
+              <span style={{
+                marginLeft: 8, fontSize: '0.75rem', fontWeight: 700,
+                color: 'var(--color-pink)',
+              }}>
+                품절
+              </span>
+            )}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <button onClick={() => setQty(Math.max(1, qty - 1))} style={qtyBtn} disabled={isSoldOut}>-</button>
@@ -215,7 +217,7 @@ export default function OrderForm() {
           </div>
           {exceedsStock && !isSoldOut && (
             <div style={{ fontSize: '0.75rem', color: 'var(--color-pink)', marginTop: 6 }}>
-              최대 {stock}개까지 주문 가능해요
+              선택하신 수량으로는 주문할 수 없어요
             </div>
           )}
         </div>

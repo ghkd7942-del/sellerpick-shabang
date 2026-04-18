@@ -1,10 +1,14 @@
 // 쇼핑몰 (항상 판매하는 상품 · isLive !== true)
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useAuth from '../hooks/useAuth';
 import ShopTabBar from '../components/ShopTabBar';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
+import FAB from '../components/FAB';
+import BottomSheet from '../components/BottomSheet';
+import ShopProductForm from '../components/ShopProductForm';
 import '../styles/admin.css';
 
 export default function ShopHome() {
@@ -12,6 +16,7 @@ export default function ShopHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products, loading } = useLiveProducts({ filter: 'shop' });
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <div className="admin-container">
@@ -76,6 +81,17 @@ export default function ShopHome() {
         )}
       </div>
       <Footer />
+      {user && <FAB onClick={() => setAddOpen(true)} />}
+      <BottomSheet
+        isOpen={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="쇼핑몰 상품 등록"
+      >
+        <ShopProductForm
+          onClose={() => setAddOpen(false)}
+          onSuccess={() => {}}
+        />
+      </BottomSheet>
       <ShopTabBar />
     </div>
   );

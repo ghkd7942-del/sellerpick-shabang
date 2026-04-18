@@ -1,5 +1,5 @@
 // 라이브몰 (방송 연동 상품 · isLive === true)
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useLiveSession from '../hooks/useLiveSession';
@@ -8,6 +8,8 @@ import LivePlayer from '../components/LivePlayer';
 import ShopTabBar from '../components/ShopTabBar';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
+import FAB from '../components/FAB';
+import QuickAdd from '../components/QuickAdd';
 import '../styles/admin.css';
 
 export default function LiveMall() {
@@ -16,6 +18,7 @@ export default function LiveMall() {
   const { user } = useAuth();
   const { products, loading } = useLiveProducts({ filter: 'live' });
   const { session } = useLiveSession();
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const sortedProducts = useMemo(() => {
     if (!session?.isActive || !session.currentProductId) return products;
@@ -126,6 +129,14 @@ export default function LiveMall() {
         )}
       </div>
       <Footer />
+      {user && <FAB onClick={() => setQuickAddOpen(true)} />}
+      {quickAddOpen && (
+        <QuickAdd
+          defaultIsLive={true}
+          onClose={() => setQuickAddOpen(false)}
+          onSuccess={() => {}}
+        />
+      )}
       <ShopTabBar />
     </div>
   );

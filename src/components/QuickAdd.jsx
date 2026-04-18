@@ -4,7 +4,7 @@ import useImageUpload from '../hooks/useImageUpload';
 
 const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];
 
-export default function QuickAdd({ onClose, onSuccess }) {
+export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
   const fileInputRef = useRef(null);
   const uploadPromiseRef = useRef(null);
   const { imageUrl, uploading, progress, uploadImage, resetImage } = useImageUpload();
@@ -68,7 +68,7 @@ export default function QuickAdd({ onClose, onSuccess }) {
         imageUrl: finalImageUrl || '',
         category: category || '',
         options: '',
-        isLive: true,
+        isLive: defaultIsLive,
       });
       console.log('Product saved:', docId, 'imageUrl:', finalImageUrl);
 

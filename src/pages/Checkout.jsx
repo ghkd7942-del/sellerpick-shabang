@@ -40,7 +40,7 @@ export default function Checkout() {
       const currentStock = fresh?.stock ?? 0;
       const needed = qty || 1;
       if (currentStock < needed) {
-        alert(`재고가 부족합니다. (남은 재고: ${currentStock}개)`);
+        alert(currentStock === 0 ? '품절된 상품입니다.' : '선택하신 수량으로는 주문할 수 없습니다.');
         setSubmitting(false);
         return;
       }

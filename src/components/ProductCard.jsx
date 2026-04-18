@@ -39,13 +39,15 @@ export default function ProductCard({ product, onOrder, isCurrent = false }) {
               {product.price?.toLocaleString('ko-KR')}원
             </div>
           </div>
-          <span style={{
-            fontSize: '0.75rem',
-            color: soldOut ? 'var(--color-pink)' : 'var(--color-teal)',
-            fontWeight: 600, marginTop: 4,
-          }}>
-            {soldOut ? '품절' : `재고 ${product.stock}`}
-          </span>
+          {soldOut && (
+            <span style={{
+              fontSize: '0.75rem',
+              color: 'var(--color-pink)',
+              fontWeight: 700, marginTop: 4,
+            }}>
+              품절
+            </span>
+          )}
         </div>
         <button
           className="btn-primary"
