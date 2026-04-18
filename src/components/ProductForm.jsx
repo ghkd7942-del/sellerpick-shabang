@@ -32,6 +32,7 @@ export default function ProductForm({ onClose, onSuccess }) {
     stock: '',
     category: '',
     options: '',
+    isLive: true,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -65,7 +66,7 @@ export default function ProductForm({ onClose, onSuccess }) {
         imageUrl: imageUrl || '',
         category: form.category,
         options: form.options,
-        isLive: true,
+        isLive: form.isLive,
         createdAt: new Date().toISOString(),
       });
       onSuccess?.();
@@ -183,6 +184,48 @@ export default function ProductForm({ onClose, onSuccess }) {
           value={form.stock}
           onChange={(e) => handleChange('stock', e.target.value.replace(/[^0-9]/g, ''))}
         />
+      </div>
+
+      {/* 판매 채널 (라이브몰 / 쇼핑몰) */}
+      <div>
+        <label style={labelStyle}>판매 채널 * (라이브몰/쇼핑몰 선택)</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { value: true, label: '🔴 라이브몰', desc: '실시간 방송' },
+            { value: false, label: '🛍 쇼핑몰', desc: '일반 판매' },
+          ].map((opt) => (
+            <button
+              key={String(opt.value)}
+              onClick={() => handleChange('isLive', opt.value)}
+              style={{
+                flex: 1,
+                padding: '12px 10px',
+                borderRadius: 10,
+                border: '1.5px solid',
+                borderColor: form.isLive === opt.value ? 'var(--color-pink)' : 'var(--color-gray-200)',
+                background: form.isLive === opt.value ? 'var(--color-pink)' : 'white',
+                color: form.isLive === opt.value ? 'white' : 'var(--color-gray-700)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                minHeight: 56,
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+              }}
+            >
+              <span>{opt.label}</span>
+              <span style={{
+                fontSize: '0.6875rem',
+                fontWeight: 400,
+                opacity: form.isLive === opt.value ? 0.9 : 0.6,
+              }}>
+                {opt.desc}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 카테고리 */}

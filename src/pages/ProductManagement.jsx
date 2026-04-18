@@ -174,8 +174,9 @@ export default function ProductManagement() {
                     color: product.isLive ? 'var(--color-gray-700)' : 'white',
                     cursor: 'pointer',
                   }}
+                  title="라이브몰/쇼핑몰 선택"
                 >
-                  {product.isLive ? '라이브 해제' : '라이브 켜기'}
+                  {product.isLive ? '🛍 쇼핑몰로' : '🔴 라이브몰로'}
                 </button>
                 <button
                   onClick={() => setEditProduct(product)}
