@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import useOrders from '../hooks/useOrders';
+import useProducts from '../hooks/useProducts';
 import { updateDocument } from '../lib/firestoreAPI';
 import { toCsv, downloadCsv, timestamp, ORDER_CSV_HEADERS, csvToObjects } from '../lib/csv';
 import { findCourierCode, getCourier } from '../lib/couriers';
@@ -61,8 +62,14 @@ const DUMMY_ORDERS = [
 
 export default function PrintLabels() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const productIdFilter = searchParams.get('productId');
   const { orders, loading } = useOrders(500);
-  const [filter, setFilter] = useState('paid');
+  const { products } = useProducts();
+  const filteredProduct = productIdFilter
+    ? products.find((p) => p.id === productIdFilter)
+    : null;
+  const [filter, setFilter] = useState(productIdFilter ? 'all-printable' : 'paid');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [selectAll, setSelectAll] = useState(true);
 
@@ -76,11 +83,17 @@ export default function PrintLabels() {
     return orders.filter((o) => {
       const t = o.createdAt?.toDate?.() || new Date(o.createdAt);
       if (t < today) return false;
+      if (productIdFilter && o.productId !== productIdFilter) return false;
       if (filter === 'paid') return o.status === 'paid';
       if (filter === 'shipping') return o.status === 'shipping';
       return o.status === 'paid' || o.status === 'shipping';
     });
-  }, [orders, filter, today]);
+  }, [orders, filter, today, productIdFilter]);
+
+  const clearProductFilter = () => {
+    searchParams.delete('productId');
+    setSearchParams(searchParams);
+  };
 
   // 전체 선택/해제 동기화
   useMemo(() => {
@@ -272,6 +285,36 @@ export default function PrintLabels() {
             style={{ display: 'none' }}
           />
         </header>
+
+        {/* 상품 필터 인디케이터 */}
+        {productIdFilter && (
+          <div style={{
+            margin: '10px 16px 0',
+            padding: '8px 12px', borderRadius: 10,
+            background: '#FFF0F3', border: '1px solid var(--color-pink)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-pink)' }}>
+              🛍 {filteredProduct?.name || '이 상품'}
+            </span>
+            <span style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>
+              만 표시 중
+            </span>
+            <button
+              onClick={clearProductFilter}
+              style={{
+                marginLeft: 'auto',
+                padding: '4px 10px', borderRadius: 6,
+                border: '1px solid var(--color-pink)',
+                background: 'white', color: 'var(--color-pink)',
+                fontSize: '0.6875rem', fontWeight: 700,
+                cursor: 'pointer', minHeight: 28,
+              }}
+            >
+              해제
+            </button>
+          </div>
+        )}
 
         {/* 필터 */}
         <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>

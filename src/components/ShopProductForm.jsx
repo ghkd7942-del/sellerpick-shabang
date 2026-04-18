@@ -254,23 +254,39 @@ export default function ShopProductForm({ onClose, onSuccess }) {
       .map((r) => ({ key: r.key.trim(), value: r.value.trim() }))
       .filter((r) => r.key && r.value);
 
+    // (색상 × 사이즈) 매트릭스 — 각 셀 = variant.stock
+    const stockMatrix = {};
+    if (colors.length > 0 && cleanVariants.length > 0) {
+      colors.forEach((cName) => {
+        stockMatrix[cName] = {};
+        cleanVariants.forEach((v) => {
+          stockMatrix[cName][v.name] = v.stock;
+        });
+      });
+    }
+    const matrixTotal = Object.values(stockMatrix).reduce(
+      (s, row) => s + Object.values(row).reduce((a, b) => a + b, 0),
+      0
+    );
+    const finalTotalStock = matrixTotal > 0 ? matrixTotal : productStock;
+
     setSubmitting(true);
     try {
       await addDocument('products', {
         name: name.trim(),
         description: description.trim(),
         category,
-        tags,
         hasOptions,
         optionGroupName: hasOptions ? optionGroupName.trim() || '옵션' : '',
         variants: cleanVariants,
+        stockMatrix,
         info: cleanInfo,
         price: productPrice,
-        stock: productStock,
+        stock: finalTotalStock,
         options: hasOptions
           ? cleanVariants.map((v) => v.name).join(', ')
           : tags.join(', '),
-        colors,
+        colors: colors.map((name) => ({ name })),
         tags,
         imageUrl: imageUrl || '',
         detailImages,

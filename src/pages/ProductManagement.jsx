@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { updateDocument, deleteDocument } from '../lib/firestoreAPI';
 import useProducts from '../hooks/useProducts';
+import useOrders from '../hooks/useOrders';
 import BottomSheet from '../components/BottomSheet';
 import ProductForm from '../components/ProductForm';
 import QuickAdd from '../components/QuickAdd';
+import ProductDetailView from '../components/ProductDetailView';
 import FAB from '../components/FAB';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
@@ -11,10 +14,22 @@ import '../styles/admin.css';
 const CATEGORIES = ['전체', '의류', '잡화', '화장품', '건강식품'];
 
 export default function ProductManagement() {
+  const navigate = useNavigate();
   const { products, loading } = useProducts();
+  const { orders } = useOrders(200);
   const [filter, setFilter] = useState('전체');
   const [editProduct, setEditProduct] = useState(null);
+  const [detailProduct, setDetailProduct] = useState(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  const todayOrderCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return orders.filter((o) => {
+      const t = o.createdAt?.toDate?.() || new Date(o.createdAt);
+      return t >= today;
+    }).length;
+  }, [orders]);
 
   const filtered = filter === '전체'
     ? products
@@ -63,6 +78,47 @@ export default function ProductManagement() {
           <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>총 재고</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-teal)' }}>{totalStock}</div>
         </div>
+      </div>
+
+      {/* 오늘 주문 프린팅 배너 */}
+      <div style={{ padding: '12px 16px 0' }}>
+        <button
+          onClick={() => navigate('/admin/print')}
+          disabled={todayOrderCount === 0}
+          style={{
+            width: '100%', padding: '12px 14px', borderRadius: 12,
+            background: todayOrderCount === 0
+              ? 'var(--color-gray-100)'
+              : 'linear-gradient(135deg, #FF4B6E, #FF8C00)',
+            color: todayOrderCount === 0 ? 'var(--color-gray-400)' : 'white',
+            border: 'none',
+            cursor: todayOrderCount === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+            minHeight: 52, textAlign: 'left',
+            boxShadow: todayOrderCount === 0 ? 'none' : '0 4px 12px rgba(255,75,110,0.25)',
+          }}
+        >
+          <span style={{ fontSize: '1.5rem' }}>🖨</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+              오늘 주문 전체 프린팅
+            </div>
+            <div style={{ fontSize: '0.6875rem', opacity: 0.85, marginTop: 1 }}>
+              {todayOrderCount > 0
+                ? `오늘 주문 ${todayOrderCount}건 · 탭해서 라벨 인쇄`
+                : '오늘 주문이 아직 없어요'}
+            </div>
+          </div>
+          {todayOrderCount > 0 && (
+            <span style={{
+              background: 'rgba(255,255,255,0.25)',
+              padding: '4px 12px', borderRadius: 9999,
+              fontSize: '0.875rem', fontWeight: 700,
+            }}>
+              {todayOrderCount}건
+            </span>
+          )}
+        </button>
       </div>
 
       {/* 카테고리 필터 */}
@@ -122,7 +178,14 @@ export default function ProductManagement() {
                 opacity: product.isLive ? 1 : 0.6,
               }}
             >
-              <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setDetailProduct(product)}
+                style={{
+                  display: 'flex', gap: 12, width: '100%',
+                  padding: 0, background: 'none', border: 'none',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
                 {/* 썸네일 */}
                 <div style={{
                   width: 64, height: 64, borderRadius: 10, flexShrink: 0,
@@ -133,33 +196,47 @@ export default function ProductManagement() {
 
                 {/* 정보 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 6 }}>
                     <div style={{
                       fontSize: '0.9375rem', fontWeight: 700,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {product.name}
                     </div>
-                    {product.isLive && (
-                      <span style={{
-                        fontSize: '0.625rem', fontWeight: 700,
-                        background: '#D1FAE5', color: '#065F46',
-                        padding: '2px 6px', borderRadius: 4, flexShrink: 0,
-                      }}>
-                        LIVE
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      {product.isLive && (
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 700,
+                          background: '#D1FAE5', color: '#065F46',
+                          padding: '2px 6px', borderRadius: 4,
+                        }}>
+                          LIVE
+                        </span>
+                      )}
+                      <span style={{ color: 'var(--color-gray-300)', fontSize: '1rem' }}>›</span>
+                    </div>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-pink)', marginTop: 2 }}>
                     {product.price?.toLocaleString('ko-KR')}원
+                    {Array.isArray(product.variants) && product.variants.length > 0 && (
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 500, color: 'var(--color-gray-500)', marginLeft: 4 }}>
+                        부터
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
                     {product.category && <span>{product.category}</span>}
-                    <span>재고 {product.stock}</span>
-                    {product.options && <span>{product.options}</span>}
+                    <span>
+                      총 재고 <strong style={{
+                        color: (product.stock ?? 0) <= 0 ? 'var(--color-pink)' : 'var(--color-gray-700)',
+                      }}>{product.stock ?? 0}</strong>
+                    </span>
+                    {Array.isArray(product.variants) && product.variants.length > 0 && (
+                      <span>옵션 {product.variants.length}</span>
+                    )}
                   </div>
                 </div>
-              </div>
+              </button>
 
               {/* 액션 버튼 */}
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -205,6 +282,15 @@ export default function ProductManagement() {
           ))
         )}
       </div>
+
+      {/* 상세 바텀시트 */}
+      <BottomSheet
+        isOpen={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        title="상품 상세"
+      >
+        {detailProduct && <ProductDetailView product={detailProduct} />}
+      </BottomSheet>
 
       {/* 수정 바텀시트 */}
       <BottomSheet

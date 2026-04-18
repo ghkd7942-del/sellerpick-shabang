@@ -2,9 +2,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 const tabs = [
   { path: '/admin', label: '홈', icon: '🏠' },
-  { path: '/admin/live', label: '라이브', icon: '🔴' },
-  { path: '/admin/orders', label: '주문', icon: '📋' },
-  { path: '/admin/products', label: '상품', icon: '🛍️' },
+  { path: '/admin/products', label: '쇼핑몰', icon: '🛍️' },
+  { path: '/admin/live', label: '라이브홈쇼핑', icon: '🔴' },
+  { path: '/admin/orders', label: '주문내역', icon: '📋' },
   { path: '/admin/settlement', label: '정산', icon: '💰' },
 ];
 
@@ -40,8 +40,9 @@ export default function BottomTabBar() {
               border: 'none',
               cursor: 'pointer',
               color: isActive ? 'var(--color-pink)' : 'var(--color-gray-500)',
-              fontSize: '0.625rem',
+              fontSize: '0.5625rem',
               fontWeight: isActive ? 700 : 400,
+              whiteSpace: 'nowrap',
               minHeight: 44,
             }}
           >

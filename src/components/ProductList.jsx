@@ -56,7 +56,7 @@ export default function ProductList({ products, loading, refetch }) {
             >
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: 12,
                 padding: '12px 16px',
                 minHeight: 44,
@@ -69,20 +69,48 @@ export default function ProductList({ products, loading, refetch }) {
                   flexShrink: 0,
                 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {product.name}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', gap: 8,
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {product.name}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: 2 }}>
+                        {product.price.toLocaleString('ko-KR')}원
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: product.stock > 0 ? 'var(--color-teal)' : 'var(--color-pink)',
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}>
+                      {Array.isArray(product.variants) && product.variants.length > 0
+                        ? `총 ${product.stock ?? 0}`
+                        : `재고 ${product.stock ?? 0}`}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: 2 }}>
-                    {product.price.toLocaleString('ko-KR')}원
-                  </div>
-                </div>
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: product.stock > 0 ? 'var(--color-teal)' : 'var(--color-pink)',
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}>
-                  재고 {product.stock}
+                  {Array.isArray(product.variants) && product.variants.length > 0 && (
+                    <div style={{
+                      display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4,
+                    }}>
+                      {product.variants.map((v, idx) => (
+                        <span key={idx} style={{
+                          fontSize: '0.6875rem', fontWeight: 600,
+                          padding: '2px 6px', borderRadius: 4,
+                          background: (v.stock ?? 0) <= 0 ? '#FEE2E2' : 'var(--color-gray-100)',
+                          color: (v.stock ?? 0) <= 0 ? '#991B1B' : 'var(--color-gray-700)',
+                        }}>
+                          {v.name} <span style={{
+                            color: (v.stock ?? 0) <= 0 ? '#991B1B' : 'var(--color-pink)',
+                          }}>
+                            {(v.stock ?? 0) <= 0 ? '품절' : v.stock}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </SwipeableItem>
