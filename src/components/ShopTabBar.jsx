@@ -1,12 +1,15 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import useLiveSession from '../hooks/useLiveSession';
 
 export default function ShopTabBar() {
   const { sellerSlug } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { session } = useLiveSession();
 
   const tabs = [
-    { path: `/shop/${sellerSlug}`, label: '쇼핑', icon: '🛍️' },
+    { path: `/shop/${sellerSlug}`, label: '쇼핑몰', icon: '🛍️' },
+    { path: `/shop/${sellerSlug}/live`, label: '라이브몰', icon: '🔴', liveIndicator: !!session?.isActive },
     { path: `/shop/${sellerSlug}/orders`, label: '주문내역', icon: '📦' },
     { path: `/shop/${sellerSlug}/my`, label: '마이', icon: '👤' },
   ];
@@ -42,9 +45,21 @@ export default function ShopTabBar() {
               fontSize: '0.625rem',
               fontWeight: isActive ? 700 : 400,
               minHeight: 44,
+              position: 'relative',
             }}
           >
-            <span style={{ fontSize: '1.25rem' }}>{tab.icon}</span>
+            <span style={{ fontSize: '1.25rem', position: 'relative' }}>
+              {tab.icon}
+              {tab.liveIndicator && (
+                <span style={{
+                  position: 'absolute', top: -2, right: -6,
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: '#FF4B6E',
+                  boxShadow: '0 0 0 2px white',
+                  animation: 'pulse 1.5s infinite',
+                }} />
+              )}
+            </span>
             <span>{tab.label}</span>
           </button>
         );
