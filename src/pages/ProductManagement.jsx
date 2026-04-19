@@ -401,15 +401,30 @@ export default function ProductManagement() {
                   수정
                 </button>
                 <button
-                  onClick={() => handleDelete(product)}
+                  onClick={() => navigate(`/shop/샤방이/product/${product.id}`)}
+                  aria-label="고객 미리보기"
+                  title="고객 미리보기"
                   style={{
                     padding: '8px 12px', borderRadius: 8,
-                    fontSize: '0.75rem', fontWeight: 600, minHeight: 40,
+                    fontSize: '0.9375rem', minHeight: 40,
+                    border: '1px solid var(--color-gray-200)',
+                    background: 'white', color: 'var(--color-gray-700)', cursor: 'pointer',
+                  }}
+                >
+                  👀
+                </button>
+                <button
+                  onClick={() => handleDelete(product)}
+                  aria-label="삭제"
+                  title="삭제"
+                  style={{
+                    padding: '8px 12px', borderRadius: 8,
+                    fontSize: '0.9375rem', minHeight: 40,
                     border: '1px solid #FEE2E2',
                     background: '#FEF2F2', color: '#991B1B', cursor: 'pointer',
                   }}
                 >
-                  삭제
+                  🗑
                 </button>
               </div>
             </div>
