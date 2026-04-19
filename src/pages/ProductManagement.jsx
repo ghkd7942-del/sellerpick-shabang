@@ -22,6 +22,7 @@ export default function ProductManagement() {
   const { orders } = useOrders(200);
   const [filter, setFilter] = useState('전체');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [editProduct, setEditProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -40,13 +41,36 @@ export default function ProductManagement() {
       ? products
       : products.filter((p) => p.category === filter);
     const q = search.trim().toLowerCase();
-    if (!q) return byCategory;
-    return byCategory.filter((p) =>
+    const bySearch = !q ? byCategory : byCategory.filter((p) =>
       (p.name || '').toLowerCase().includes(q) ||
       (p.description || '').toLowerCase().includes(q) ||
       (p.tags || []).some((t) => String(t).toLowerCase().includes(q))
     );
-  }, [products, filter, search]);
+    const sorted = [...bySearch];
+    const ts = (p) => {
+      const v = p.createdAt;
+      if (!v) return 0;
+      if (typeof v?.toDate === 'function') return v.toDate().getTime();
+      const t = new Date(v).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+    switch (sortBy) {
+      case 'stockAsc':
+        sorted.sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0));
+        break;
+      case 'priceAsc':
+        sorted.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+        break;
+      case 'priceDesc':
+        sorted.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+        break;
+      case 'newest':
+      default:
+        sorted.sort((a, b) => ts(b) - ts(a));
+        break;
+    }
+    return sorted;
+  }, [products, filter, search, sortBy]);
 
   const toggleLive = async (product) => {
     await updateDocument('products', product.id, { isLive: !product.isLive });
@@ -153,9 +177,9 @@ export default function ProductManagement() {
         </button>
       </div>
 
-      {/* 검색창 */}
-      <div style={{ padding: '12px 16px 0' }}>
-        <div style={{ position: 'relative' }}>
+      {/* 검색창 + 정렬 */}
+      <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <span style={{
             position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
             fontSize: '0.9375rem', color: 'var(--color-gray-400)', pointerEvents: 'none',
@@ -189,6 +213,22 @@ export default function ProductManagement() {
             </button>
           )}
         </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          aria-label="정렬"
+          style={{
+            flexShrink: 0, padding: '0 10px', minHeight: 40,
+            border: '1px solid var(--color-gray-200)', borderRadius: 10,
+            fontSize: '0.8125rem', background: 'white',
+            color: 'var(--color-gray-700)', cursor: 'pointer', outline: 'none',
+          }}
+        >
+          <option value="newest">최신순</option>
+          <option value="stockAsc">재고 적은 순</option>
+          <option value="priceAsc">가격 낮은 순</option>
+          <option value="priceDesc">가격 높은 순</option>
+        </select>
       </div>
 
       {/* 카테고리 필터 */}
