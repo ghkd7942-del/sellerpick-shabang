@@ -14,6 +14,7 @@ import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
 
 const CATEGORIES = ['전체', '의류', '잡화', '뷰티', '식품·건강', '침구·생활', '기타'];
+const LOW_STOCK_THRESHOLD = 10;
 
 export default function ProductManagement() {
   const navigate = useNavigate();
@@ -275,6 +276,23 @@ export default function ProductManagement() {
                       {product.name}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      {(product.stock ?? 0) === 0 ? (
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 700,
+                          background: '#FEE2E2', color: '#991B1B',
+                          padding: '2px 6px', borderRadius: 4,
+                        }}>
+                          품절
+                        </span>
+                      ) : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD && (
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 700,
+                          background: '#FEF3C7', color: '#92400E',
+                          padding: '2px 6px', borderRadius: 4,
+                        }}>
+                          재고부족
+                        </span>
+                      )}
                       {product.isLive && (
                         <span style={{
                           fontSize: '0.625rem', fontWeight: 700,
@@ -299,7 +317,11 @@ export default function ProductManagement() {
                     {product.category && <span>{product.category}</span>}
                     <span>
                       총 재고 <strong style={{
-                        color: (product.stock ?? 0) <= 0 ? 'var(--color-pink)' : 'var(--color-gray-700)',
+                        color: (product.stock ?? 0) === 0
+                          ? '#991B1B'
+                          : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD
+                            ? '#92400E'
+                            : 'var(--color-gray-700)',
                       }}>{product.stock ?? 0}</strong>
                     </span>
                     {Array.isArray(product.variants) && product.variants.length > 0 && (
