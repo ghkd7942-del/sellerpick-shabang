@@ -47,7 +47,10 @@ export default function ProductManagement() {
   };
 
   const liveCount = products.filter((p) => p.isLive).length;
-  const totalStock = products.reduce((s, p) => s + (p.stock || 0), 0);
+  const soldOutCount = products.filter((p) => (p.stock || 0) === 0).length;
+  const pendingOrderCount = orders.filter(
+    (o) => o.status === 'new' || o.status === 'paid'
+  ).length;
 
   return (
     <div className="admin-container">
@@ -80,8 +83,21 @@ export default function ProductManagement() {
           <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-pink)' }}>{liveCount}</div>
         </div>
         <div style={miniCard}>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>총 재고</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-teal)' }}>{totalStock}</div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>품절</div>
+          <div style={{
+            fontSize: '1.25rem', fontWeight: 700,
+            color: soldOutCount > 0 ? 'var(--color-pink)' : 'var(--color-gray-400)',
+          }}>{soldOutCount}</div>
+        </div>
+        <div
+          style={{ ...miniCard, cursor: 'pointer' }}
+          onClick={() => navigate('/admin/orders')}
+        >
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>대기 주문</div>
+          <div style={{
+            fontSize: '1.25rem', fontWeight: 700,
+            color: pendingOrderCount > 0 ? 'var(--color-teal)' : 'var(--color-gray-400)',
+          }}>{pendingOrderCount}</div>
         </div>
       </div>
 
