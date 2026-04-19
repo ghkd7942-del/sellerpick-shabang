@@ -13,7 +13,7 @@ import FAB from '../components/FAB';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
 
-const CATEGORIES = ['전체', '의류', '잡화', '화장품', '건강식품'];
+const CATEGORIES = ['전체', '의류', '잡화', '뷰티', '식품·건강', '침구·생활', '기타'];
 
 export default function ProductManagement() {
   const navigate = useNavigate();
