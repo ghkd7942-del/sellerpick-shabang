@@ -34,7 +34,7 @@ function formatWhen(ts) {
   return `${mm}/${dd} ${hh}:${mi}`;
 }
 
-export default function ProductDetailView({ product, onEdit }) {
+export default function ProductDetailView({ product, onEdit, onClone }) {
   const navigate = useNavigate();
   const { orders, loading } = useOrders(200);
 
@@ -398,11 +398,11 @@ export default function ProductDetailView({ product, onEdit }) {
 
       {/* 관리자 액션 */}
       {onEdit && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={onEdit}
             style={{
-              flex: 1, padding: '12px', borderRadius: 10,
+              flex: '1 1 calc(50% - 4px)', padding: '12px', borderRadius: 10,
               border: '1.5px solid var(--color-gray-200)',
               background: 'white', color: 'var(--color-gray-700)',
               fontSize: '0.875rem', fontWeight: 700, minHeight: 44,
@@ -411,10 +411,24 @@ export default function ProductDetailView({ product, onEdit }) {
           >
             ✏️ 상품 수정
           </button>
+          {onClone && (
+            <button
+              onClick={onClone}
+              style={{
+                flex: '1 1 calc(50% - 4px)', padding: '12px', borderRadius: 10,
+                border: '1.5px solid var(--color-gray-200)',
+                background: 'white', color: 'var(--color-gray-700)',
+                fontSize: '0.875rem', fontWeight: 700, minHeight: 44,
+                cursor: 'pointer',
+              }}
+            >
+              📋 복제
+            </button>
+          )}
           <button
             onClick={() => navigate(`/shop/샤방이/product/${product.id}`)}
             style={{
-              flex: 1, padding: '12px', borderRadius: 10,
+              flex: '1 1 100%', padding: '12px', borderRadius: 10,
               border: '1.5px solid var(--color-gray-200)',
               background: 'white', color: 'var(--color-gray-700)',
               fontSize: '0.875rem', fontWeight: 700, minHeight: 44,

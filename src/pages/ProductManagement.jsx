@@ -24,6 +24,7 @@ export default function ProductManagement() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [editProduct, setEditProduct] = useState(null);
+  const [cloneProduct, setCloneProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
@@ -429,6 +430,10 @@ export default function ProductManagement() {
               setEditProduct(detailProduct);
               setDetailProduct(null);
             }}
+            onClone={() => {
+              setCloneProduct(detailProduct);
+              setDetailProduct(null);
+            }}
           />
         )}
       </BottomSheet>
@@ -443,6 +448,21 @@ export default function ProductManagement() {
           <EditShopProduct
             product={editProduct}
             onClose={() => setEditProduct(null)}
+          />
+        )}
+      </BottomSheet>
+
+      {/* 복제 바텀시트 */}
+      <BottomSheet
+        isOpen={!!cloneProduct}
+        onClose={() => setCloneProduct(null)}
+        title="상품 복제"
+      >
+        {cloneProduct && (
+          <EditShopProduct
+            product={cloneProduct}
+            mode="clone"
+            onClose={() => setCloneProduct(null)}
           />
         )}
       </BottomSheet>

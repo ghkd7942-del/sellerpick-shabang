@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { updateDocument } from '../lib/firestoreAPI';
+import { updateDocument, addDocument } from '../lib/firestoreAPI';
 import { uploadImageFile } from '../lib/uploadImage';
 
 const CATEGORIES = ['의류', '잡화', '뷰티', '식품·건강', '침구·생활', '기타'];
@@ -81,11 +81,14 @@ function normalizeColors(raw) {
   return raw.map((c) => (typeof c === 'string' ? c : c?.name || '')).filter(Boolean);
 }
 
-export default function EditShopProduct({ product, onClose }) {
+export default function EditShopProduct({ product, onClose, mode = 'edit' }) {
+  const isClone = mode === 'clone';
   const mainFileRef = useRef(null);
   const detailFileRef = useRef(null);
 
-  const [name, setName] = useState(product.name || '');
+  const [name, setName] = useState(
+    isClone ? `${product.name || ''} (복사)` : (product.name || '')
+  );
   const [description, setDescription] = useState(product.description || '');
   const [category, setCategory] = useState(product.category || '');
   const [mainImage, setMainImage] = useState(product.imageUrl || '');
@@ -301,7 +304,7 @@ export default function EditShopProduct({ product, onClose }) {
 
     setSubmitting(true);
     try {
-      await updateDocument('products', product.id, {
+      const payload = {
         name: name.trim(),
         description: description.trim(),
         category,
@@ -315,10 +318,20 @@ export default function EditShopProduct({ product, onClose }) {
         price: isFinite(minPrice) && minPrice > 0 ? minPrice : (product.price || 0),
         hasOptions: cleanVariants.length > 1 || Boolean(product.hasOptions),
         options: cleanVariants.map((v) => v.name).join(', '),
-      });
+      };
+      if (isClone) {
+        await addDocument('products', {
+          ...payload,
+          tags: Array.isArray(product.tags) ? product.tags : [],
+          isLive: false,
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        await updateDocument('products', product.id, payload);
+      }
       onClose();
     } catch (err) {
-      alert('수정 실패: ' + err.message);
+      alert((isClone ? '복제' : '수정') + ' 실패: ' + err.message);
     }
     setSubmitting(false);
   };
@@ -744,12 +757,12 @@ export default function EditShopProduct({ product, onClose }) {
         }}
       >
         {submitting
-          ? '저장 중...'
+          ? (isClone ? '복제 중...' : '저장 중...')
           : mainUploading
             ? '대표 이미지 업로드 중...'
             : detailUploading
               ? '상세 이미지 업로드 중...'
-              : '저장하기'}
+              : (isClone ? '복제하기' : '저장하기')}
       </button>
     </div>
   );
