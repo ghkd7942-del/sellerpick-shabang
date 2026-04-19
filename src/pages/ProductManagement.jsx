@@ -20,6 +20,7 @@ export default function ProductManagement() {
   const { products, loading } = useProducts();
   const { orders } = useOrders(200);
   const [filter, setFilter] = useState('전체');
+  const [search, setSearch] = useState('');
   const [editProduct, setEditProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -33,9 +34,18 @@ export default function ProductManagement() {
     }).length;
   }, [orders]);
 
-  const filtered = filter === '전체'
-    ? products
-    : products.filter((p) => p.category === filter);
+  const filtered = useMemo(() => {
+    const byCategory = filter === '전체'
+      ? products
+      : products.filter((p) => p.category === filter);
+    const q = search.trim().toLowerCase();
+    if (!q) return byCategory;
+    return byCategory.filter((p) =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      (p.tags || []).some((t) => String(t).toLowerCase().includes(q))
+    );
+  }, [products, filter, search]);
 
   const toggleLive = async (product) => {
     await updateDocument('products', product.id, { isLive: !product.isLive });
@@ -142,6 +152,44 @@ export default function ProductManagement() {
         </button>
       </div>
 
+      {/* 검색창 */}
+      <div style={{ padding: '12px 16px 0' }}>
+        <div style={{ position: 'relative' }}>
+          <span style={{
+            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+            fontSize: '0.9375rem', color: 'var(--color-gray-400)', pointerEvents: 'none',
+          }}>🔍</span>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="상품명·설명·태그 검색"
+            style={{
+              width: '100%', padding: '10px 38px 10px 38px',
+              border: '1px solid var(--color-gray-200)', borderRadius: 10,
+              fontSize: '0.875rem', outline: 'none', minHeight: 40,
+              background: 'white',
+            }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              aria-label="검색어 지우기"
+              style={{
+                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                width: 28, height: 28, borderRadius: '50%',
+                border: 'none', background: 'var(--color-gray-100)',
+                color: 'var(--color-gray-500)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.75rem',
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* 카테고리 필터 */}
       <div style={{
         display: 'flex', gap: 0, padding: '12px 16px 0',
@@ -181,12 +229,14 @@ export default function ProductManagement() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>&#128230;</div>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>
+              {search.trim() ? '🔎' : '\u{1F4E6}'}
+            </div>
             <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-gray-700)' }}>
-              등록된 상품이 없어요
+              {search.trim() ? '검색 결과가 없어요' : '등록된 상품이 없어요'}
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)', marginTop: 4 }}>
-              + 버튼으로 상품을 등록해보세요
+              {search.trim() ? `"${search.trim()}"에 해당하는 상품을 찾을 수 없어요` : '+ 버튼으로 상품을 등록해보세요'}
             </div>
           </div>
         ) : (
