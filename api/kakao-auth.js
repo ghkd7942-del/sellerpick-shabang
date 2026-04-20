@@ -29,8 +29,8 @@ export default async function handler(req, res) {
 
     const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: tokenParams,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+      body: tokenParams.toString(),
     });
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         detail: tokenData,
         debug: {
           client_id_used: restKey ? restKey.slice(0, 8) + '...' + restKey.slice(-4) : 'MISSING',
-          client_secret_used: clientSecret ? 'YES (len=' + clientSecret.length + ')' : 'NO',
+          client_secret_used: clientSecret ? `${clientSecret.slice(0, 4)}...${clientSecret.slice(-4)} (len=${clientSecret.length})` : 'NO',
           redirect_uri: redirectUri,
         },
       });
