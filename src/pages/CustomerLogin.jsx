@@ -13,17 +13,20 @@ export default function CustomerLogin() {
     setError('');
     setLoading(true);
     try {
-      if (provider === 'google') await loginWithGoogle();
-      if (provider === 'kakao') {
-        sessionStorage.setItem('kakao_temp_auth', 'true');
+      if (provider === 'google') {
+        await loginWithGoogle();
+        navigate(`/shop/${sellerSlug}`);
+      } else if (provider === 'kakao') {
+        // 리다이렉트 방식 — 이 아래로는 실행되지 않음 (콜백은 /auth/kakao/callback)
+        loginWithKakao(sellerSlug);
+        return;
       }
-      navigate(`/shop/${sellerSlug}`);
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError('로그인 실패: ' + (err.message || '다시 시도해주세요'));
       }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
