@@ -13,20 +13,24 @@ export default async function handler(req, res) {
   }
 
   const restKey = process.env.KAKAO_REST_API_KEY;
+  const clientSecret = process.env.KAKAO_CLIENT_SECRET;
   if (!restKey) {
     return res.status(500).json({ error: 'KAKAO_REST_API_KEY 미설정' });
   }
 
   try {
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: restKey,
+      redirect_uri: redirectUri,
+      code,
+    });
+    if (clientSecret) tokenParams.set('client_secret', clientSecret);
+
     const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: restKey,
-        redirect_uri: redirectUri,
-        code,
-      }),
+      body: tokenParams,
     });
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
