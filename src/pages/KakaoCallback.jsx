@@ -30,7 +30,10 @@ export default function KakaoCallback() {
           body: JSON.stringify({ code, redirectUri, sellerSlug }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '로그인 실패');
+        if (!res.ok) {
+          const detail = data.detail ? ` — ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` : '';
+          throw new Error((data.error || '로그인 실패') + detail);
+        }
 
         await signInWithCustomToken(auth, data.firebaseToken);
 
@@ -52,7 +55,7 @@ export default function KakaoCallback() {
       }}>
         <div style={{ fontSize: 40 }}>⚠️</div>
         <div style={{ fontSize: 16, fontWeight: 700 }}>카카오 로그인 실패</div>
-        <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6 }}>{errorMsg}</div>
+        <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, maxWidth: 380, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{errorMsg}</div>
         <button
           onClick={() => navigate('/', { replace: true })}
           style={{
