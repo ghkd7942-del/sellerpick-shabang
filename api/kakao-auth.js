@@ -35,7 +35,15 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error('[kakao-auth] token exchange failed:', tokenData);
-      return res.status(400).json({ error: '카카오 토큰 발급 실패', detail: tokenData });
+      return res.status(400).json({
+        error: '카카오 토큰 발급 실패',
+        detail: tokenData,
+        debug: {
+          client_id_used: restKey ? restKey.slice(0, 8) + '...' + restKey.slice(-4) : 'MISSING',
+          client_secret_used: clientSecret ? 'YES (len=' + clientSecret.length + ')' : 'NO',
+          redirect_uri: redirectUri,
+        },
+      });
     }
 
     const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {

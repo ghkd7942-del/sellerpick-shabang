@@ -31,8 +31,9 @@ export default function KakaoCallback() {
         });
         const data = await res.json();
         if (!res.ok) {
-          const detail = data.detail ? ` — ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` : '';
-          throw new Error((data.error || '로그인 실패') + detail);
+          const detail = data.detail ? `\n${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}` : '';
+          const debug = data.debug ? `\n[debug] ${JSON.stringify(data.debug)}` : '';
+          throw new Error((data.error || '로그인 실패') + detail + debug);
         }
 
         await signInWithCustomToken(auth, data.firebaseToken);
