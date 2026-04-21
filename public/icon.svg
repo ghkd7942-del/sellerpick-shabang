@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0%" stop-color="#FFF6EC"/>
+      <stop offset="100%" stop-color="#F3D9C2"/>
+    </radialGradient>
+    <linearGradient id="fox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF4B8E"/>
+      <stop offset="100%" stop-color="#D81B6E"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="100%" stop-color="#E8A629"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+
+  <!-- 왕관 -->
+  <g transform="translate(256 108)" stroke="#8C5A0E" stroke-width="4" stroke-linejoin="round">
+    <path d="M-62 8 L-40 -26 L-20 4 L0 -34 L20 4 L40 -26 L62 8 L54 34 L-54 34 Z" fill="url(#gold)"/>
+    <circle cx="-40" cy="-26" r="6" fill="#FF4B6E"/>
+    <circle cx="0" cy="-34" r="7" fill="#FF4B6E"/>
+    <circle cx="40" cy="-26" r="6" fill="#FF4B6E"/>
+  </g>
+
+  <!-- 여우 -->
+  <g transform="translate(256 258)">
+    <!-- 꼬리 (오른쪽 뒤) -->
+    <path d="M 84 36 Q 140 0 140 -56 Q 150 -20 120 28 Q 108 50 84 56 Z"
+          fill="url(#fox)" stroke="#8A0F44" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 126 -34 Q 140 -20 132 8 Q 126 -4 126 -34 Z" fill="#FFFFFF"/>
+
+    <!-- 왼쪽 귀 -->
+    <path d="M -70 -58 L -50 -118 L -22 -60 Z"
+          fill="url(#fox)" stroke="#8A0F44" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M -58 -70 L -50 -100 L -38 -68 Z" fill="#FFFFFF"/>
+
+    <!-- 오른쪽 귀 -->
+    <path d="M 70 -58 L 50 -118 L 22 -60 Z"
+          fill="url(#fox)" stroke="#8A0F44" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 58 -70 L 50 -100 L 38 -68 Z" fill="#FFFFFF"/>
+
+    <!-- 얼굴 (핑크 역삼각) -->
+    <path d="M -88 -48 Q -92 10 -60 44 Q -28 66 0 72 Q 28 66 60 44 Q 92 10 88 -48 Q 40 -70 0 -70 Q -40 -70 -88 -48 Z"
+          fill="url(#fox)" stroke="#8A0F44" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- 흰 볼/턱 -->
+    <path d="M -44 4 Q -30 50 0 66 Q 30 50 44 4 Q 22 18 0 18 Q -22 18 -44 4 Z" fill="#FFFFFF"/>
+
+    <!-- 눈 (윙크) -->
+    <circle cx="-28" cy="-12" r="6.5" fill="#1A1A1A"/>
+    <path d="M 18 -14 Q 30 -18 40 -12" stroke="#1A1A1A" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+    <!-- 코 -->
+    <path d="M -7 12 Q 0 22 7 12 Q 0 18 -7 12 Z" fill="#1A1A1A"/>
+
+    <!-- 입 -->
+    <path d="M 0 20 Q -6 28 -12 28 M 0 20 Q 6 28 12 28" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- 샤방이 텍스트 -->
+  <text x="256" y="432"
+        font-family="'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
+        font-size="68" font-weight="900"
+        fill="#D81B5E" text-anchor="middle" letter-spacing="-2">샤방이</text>
+
+  <!-- 하단 별 점 장식 -->
+  <g fill="#E8A629" transform="translate(256 470)">
+    <circle cx="-50" cy="0" r="3.5"/>
+    <circle cx="-25" cy="0" r="3.5"/>
+    <circle cx="0" cy="0" r="4.5"/>
+    <circle cx="25" cy="0" r="3.5"/>
+    <circle cx="50" cy="0" r="3.5"/>
+  </g>
+</svg>

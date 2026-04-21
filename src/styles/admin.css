@@ -13,6 +13,43 @@
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
 
+/* LIVE 상태 배너/컨트롤용 흰 펄스 닷 */
+.live-dot-white {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
+  animation: live-dot-ring 1.6s ease-out infinite;
+}
+
+@keyframes live-dot-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.65); opacity: 1; }
+  70%  { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);  opacity: 0.85; }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);    opacity: 1; }
+}
+
+/* 관리자 LIVE 컨트롤 바 펄스 배경 */
+@keyframes live-pulse-bg {
+  0%, 100% { box-shadow: 0 6px 20px rgba(255, 75, 110, 0.35), 0 0 0 0 rgba(255, 75, 110, 0.5); }
+  50%      { box-shadow: 0 6px 20px rgba(255, 75, 110, 0.45), 0 0 0 10px rgba(255, 75, 110, 0); }
+}
+
+.live-control-pulse {
+  animation: live-pulse-bg 2s ease-in-out infinite;
+}
+
+/* 고객 LIVE 배너 미세 호흡 */
+@keyframes live-banner-breathe {
+  0%, 100% { transform: translateZ(0) scale(1); }
+  50%      { transform: translateZ(0) scale(1.01); }
+}
+
+.live-status-banner {
+  animation: live-banner-breathe 2.4s ease-in-out infinite;
+}
+
 .admin-container {
   max-width: 430px;
   margin: 0 auto;

@@ -46,6 +46,9 @@ function App() {
           <Route path="/legal/:slug" element={<Legal />} />
 
           {/* 고객 — 로그인 불필요 */}
+          {/* 영문 단축 URL (유튜브 채팅 등에서 한글 URL이 안 걸리는 문제 대응) */}
+          <Route path="/s/:sellerSlug" element={<ShopHome />} />
+          <Route path="/s/:sellerSlug/live" element={<LiveMall />} />
           <Route path="/shop/:sellerSlug" element={<ShopHome />} />
           <Route path="/shop/:sellerSlug/live" element={<LiveMall />} />
           <Route path="/shop/:sellerSlug/product/:productId" element={<ProductDetail />} />

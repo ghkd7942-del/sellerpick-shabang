@@ -1,16 +1,17 @@
 // 라이브몰 (방송 연동 상품 · isLive === true)
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useLiveSession from '../hooks/useLiveSession';
 import useAuth from '../hooks/useAuth';
+import useSeller from '../hooks/useSeller';
 import LivePlayer from '../components/LivePlayer';
 import ShopTabBar from '../components/ShopTabBar';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import FAB from '../components/FAB';
-import QuickAdd from '../components/QuickAdd';
 import ViewSwitcher from '../components/ViewSwitcher';
+import LiveStatusBanner from '../components/LiveStatusBanner';
+import InstallPrompt from '../components/InstallPrompt';
 import '../styles/admin.css';
 
 export default function LiveMall() {
@@ -19,7 +20,9 @@ export default function LiveMall() {
   const { user } = useAuth();
   const { products, loading } = useLiveProducts({ filter: 'live' });
   const { session } = useLiveSession();
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const { seller, slug } = useSeller(sellerSlug);
+  const displayName = seller?.name || seller?.shopName || sellerSlug;
+  const isLive = !!(seller?.isLive || session?.isActive);
 
   const sortedProducts = useMemo(() => {
     if (!session?.isActive || !session.currentProductId) return products;
@@ -39,10 +42,10 @@ export default function LiveMall() {
         borderBottom: '1px solid var(--color-gray-200)',
       }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-          {sellerSlug} 라이브몰 &#128308;
+          {displayName} 라이브몰 &#128308;
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {session?.isActive && (
+          {isLive && (
             <span style={{
               display: 'inline-flex', alignItems: 'center',
               background: 'var(--color-pink)', color: 'white',
@@ -70,6 +73,10 @@ export default function LiveMall() {
       </header>
 
       <div className="admin-content">
+        {seller?.isLive && !session?.isActive && (
+          <LiveStatusBanner slug={slug} sellerName={displayName} />
+        )}
+        <InstallPrompt />
         {/* 라이브 영상 */}
         {session?.isActive ? (
           <LivePlayer
@@ -120,14 +127,6 @@ export default function LiveMall() {
         )}
       </div>
       <Footer />
-      {user && <FAB onClick={() => setQuickAddOpen(true)} />}
-      {quickAddOpen && (
-        <QuickAdd
-          defaultIsLive={true}
-          onClose={() => setQuickAddOpen(false)}
-          onSuccess={() => {}}
-        />
-      )}
       <ShopTabBar />
     </div>
   );

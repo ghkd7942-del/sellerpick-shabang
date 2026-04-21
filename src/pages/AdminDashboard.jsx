@@ -5,6 +5,7 @@ import useProducts from '../hooks/useProducts';
 import useStats from '../hooks/useStats';
 import { seedSampleData } from '../lib/seedData';
 import AdminHeader from '../components/AdminHeader';
+import LiveControlBar from '../components/LiveControlBar';
 import StatCards from '../components/StatCards';
 import RecentOrders from '../components/RecentOrders';
 import ProductList from '../components/ProductList';
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
     <div className="admin-container">
       <AdminHeader />
       <div className="admin-content">
+        <LiveControlBar />
         <StatCards
           todayOrderCount={todayOrderCount}
           paidCount={paidCount}

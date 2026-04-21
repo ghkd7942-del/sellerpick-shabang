@@ -1,15 +1,14 @@
 // 쇼핑몰 (항상 판매하는 상품 · isLive !== true)
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
 import useAuth from '../hooks/useAuth';
+import useSeller from '../hooks/useSeller';
 import ShopTabBar from '../components/ShopTabBar';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import FAB from '../components/FAB';
-import BottomSheet from '../components/BottomSheet';
-import ShopProductForm from '../components/ShopProductForm';
 import ViewSwitcher from '../components/ViewSwitcher';
+import LiveStatusBanner from '../components/LiveStatusBanner';
+import InstallPrompt from '../components/InstallPrompt';
 import '../styles/admin.css';
 
 export default function ShopHome() {
@@ -17,7 +16,8 @@ export default function ShopHome() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products, loading } = useLiveProducts({ filter: 'shop' });
-  const [addOpen, setAddOpen] = useState(false);
+  const { seller, slug } = useSeller(sellerSlug);
+  const displayName = seller?.name || seller?.shopName || sellerSlug;
 
   return (
     <div className="admin-container">
@@ -29,7 +29,7 @@ export default function ShopHome() {
         borderBottom: '1px solid var(--color-gray-200)',
       }}>
         <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-          {sellerSlug} 쇼핑몰 &#128722;
+          {displayName} 쇼핑몰 &#128722;
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ViewSwitcher slug={sellerSlug} />
@@ -50,6 +50,10 @@ export default function ShopHome() {
       </header>
 
       <div className="admin-content">
+        {seller?.isLive && (
+          <LiveStatusBanner slug={slug} sellerName={displayName} />
+        )}
+        <InstallPrompt />
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
             상품 불러오는 중...
@@ -72,17 +76,6 @@ export default function ShopHome() {
         )}
       </div>
       <Footer />
-      {user && <FAB onClick={() => setAddOpen(true)} />}
-      <BottomSheet
-        isOpen={addOpen}
-        onClose={() => setAddOpen(false)}
-        title="쇼핑몰 상품 등록"
-      >
-        <ShopProductForm
-          onClose={() => setAddOpen(false)}
-          onSuccess={() => {}}
-        />
-      </BottomSheet>
       <ShopTabBar />
     </div>
   );
