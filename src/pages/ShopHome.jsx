@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import ViewSwitcher from '../components/ViewSwitcher';
 import LiveStatusBanner from '../components/LiveStatusBanner';
-import InstallPrompt from '../components/InstallPrompt';
+import InstallButton from '../components/InstallButton';
 import '../styles/admin.css';
 
 export default function ShopHome() {
@@ -53,7 +53,7 @@ export default function ShopHome() {
         {seller?.isLive && (
           <LiveStatusBanner slug={slug} sellerName={displayName} />
         )}
-        <InstallPrompt />
+        <InstallButton />
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
             상품 불러오는 중...

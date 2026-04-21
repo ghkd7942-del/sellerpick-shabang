@@ -11,7 +11,7 @@ import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import ViewSwitcher from '../components/ViewSwitcher';
 import LiveStatusBanner from '../components/LiveStatusBanner';
-import InstallPrompt from '../components/InstallPrompt';
+import InstallButton from '../components/InstallButton';
 import '../styles/admin.css';
 
 export default function LiveMall() {
@@ -76,7 +76,7 @@ export default function LiveMall() {
         {seller?.isLive && !session?.isActive && (
           <LiveStatusBanner slug={slug} sellerName={displayName} />
         )}
-        <InstallPrompt />
+        <InstallButton />
         {/* 라이브 영상 */}
         {session?.isActive ? (
           <LivePlayer
