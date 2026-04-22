@@ -22,6 +22,8 @@ import CustomerLogin from './pages/CustomerLogin';
 import MyPage from './pages/MyPage';
 import Legal from './pages/Legal';
 import KakaoCallback from './pages/KakaoCallback';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFail from './pages/PaymentFail';
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
           <Route path="/shop/:sellerSlug/order/:productId" element={<OrderForm />} />
           <Route path="/shop/:sellerSlug/checkout/:productId" element={<Checkout />} />
           <Route path="/shop/:sellerSlug/order-complete" element={<OrderComplete />} />
+          <Route path="/shop/:sellerSlug/payment/success" element={<PaymentSuccess />} />
+          <Route path="/shop/:sellerSlug/payment/fail" element={<PaymentFail />} />
           <Route path="/shop/:sellerSlug/orders" element={<OrderTrack />} />
           <Route path="/shop/:sellerSlug/login" element={<CustomerLogin />} />
           <Route path="/shop/:sellerSlug/my" element={<MyPage />} />
