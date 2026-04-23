@@ -5,6 +5,7 @@ import { getCollection } from '../lib/firestoreAPI';
 //   live — isLive === true 만 (라이브몰)
 //   shop — isLive !== true 만 (쇼핑몰)
 //   all  — 전체
+// 고객 대상 hook이므로 hidden === true 인 상품은 항상 제외
 export default function useLiveProducts({ filter = 'all' } = {}) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,9 +13,10 @@ export default function useLiveProducts({ filter = 'all' } = {}) {
   const fetchProducts = useCallback(async () => {
     try {
       const data = await getCollection('products');
-      let filtered = data;
-      if (filter === 'live') filtered = data.filter((p) => p.isLive === true);
-      else if (filter === 'shop') filtered = data.filter((p) => p.isLive !== true);
+      // 고객에게 보여지면 안 되는 숨김 상품 제외
+      let filtered = data.filter((p) => p.hidden !== true);
+      if (filter === 'live') filtered = filtered.filter((p) => p.isLive === true);
+      else if (filter === 'shop') filtered = filtered.filter((p) => p.isLive !== true);
       filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setProducts(filtered);
     } catch (err) {
