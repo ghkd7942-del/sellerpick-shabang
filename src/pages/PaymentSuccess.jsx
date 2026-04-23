@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getDocument } from '../lib/firestoreAPI';
+import { notifyPaymentConfirmed } from '../lib/alimtalk';
 
 export default function PaymentSuccess() {
   const { sellerSlug } = useParams();
@@ -44,6 +45,11 @@ export default function PaymentSuccess() {
           order = await getDocument('orders', orderId);
         } catch (e) {
           console.warn('order 문서 조회 실패 — 최소 정보로 이동', e);
+        }
+
+        // 결제 완료 알림톡 — 실패해도 플로우 막지 않음
+        if (order?.phone) {
+          notifyPaymentConfirmed({ ...order, id: orderId }).catch(() => {});
         }
 
         // 성공 → OrderComplete로 state 전달하며 리다이렉트

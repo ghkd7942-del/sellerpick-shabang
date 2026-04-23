@@ -5,7 +5,15 @@ import useOrders from '../hooks/useOrders';
 import BottomTabBar from '../components/BottomTabBar';
 import BottomSheet from '../components/BottomSheet';
 import { COURIERS } from '../lib/couriers';
-import { notifyPaymentConfirmed, notifyShippingStarted } from '../lib/alimtalk';
+import {
+  notifyPaymentConfirmed,
+  notifyShippingStarted,
+  notifyShippingDelivered,
+  notifyOrderCancelled,
+  resendForStatus,
+  ALIMTALK_LABELS,
+  ALIMTALK_TEMPLATES,
+} from '../lib/alimtalk';
 import '../styles/admin.css';
 
 const FILTERS = [
@@ -151,7 +159,9 @@ export default function OrderManagement() {
     try {
       await updateDocument('orders', order.id, { status: nextStatus });
       if (nextStatus === 'paid') {
-        notifyPaymentConfirmed(order).catch(() => {});
+        notifyPaymentConfirmed({ ...order, id: order.id }).catch(() => {});
+      } else if (nextStatus === 'done') {
+        notifyShippingDelivered({ ...order, id: order.id }).catch(() => {});
       }
       refetch();
     } catch (err) {
@@ -195,6 +205,8 @@ export default function OrderManagement() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || '취소 실패');
+        // 취소 알림톡 (실패해도 플로우 막지 않음)
+        notifyOrderCancelled({ ...order, id: order.id }, reason).catch(() => {});
         refetch();
         return { ok: true, method: 'toss-auto', data };
       }
@@ -220,6 +232,10 @@ export default function OrderManagement() {
         cancelReason: reason || (refundOnly ? '환불 요청' : '판매자 취소'),
         cancelledAt: new Date(),
       });
+      // 취소 완료로 처리한 경우에만 취소 알림톡 (환불 진행중은 추후 refunded 때 발송)
+      if (!refundOnly) {
+        notifyOrderCancelled({ ...order, id: order.id }, reason).catch(() => {});
+      }
       refetch();
       return { ok: true, method: 'manual' };
     } catch (err) {
@@ -247,6 +263,7 @@ export default function OrderManagement() {
         } else if (kind === 'done') {
           if (order.status === 'shipping' || order.status === 'paid') {
             await updateDocument('orders', order.id, { status: 'done' });
+            notifyShippingDelivered({ ...order, id: order.id }).catch(() => {});
             success++;
           }
         } else if (kind === 'cancel') {
@@ -818,6 +835,9 @@ function OrderDetail({ order, onSaveNotes, onRequestCancel, onClose }) {
         </div>
       </div>
 
+      {/* 알림톡 재전송 */}
+      <AlimtalkResend order={order} />
+
       {/* 취소/환불 버튼 */}
       {!terminal && (
         <button
@@ -844,6 +864,72 @@ function OrderDetail({ order, onSaveNotes, onRequestCancel, onClose }) {
       >
         닫기
       </button>
+    </div>
+  );
+}
+
+function AlimtalkResend({ order }) {
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+
+  // 현재 상태별 자동 선택된 템플릿 라벨
+  const statusTemplate =
+    order.status === 'new' ? ALIMTALK_TEMPLATES.ORDER_RECEIVED
+    : order.status === 'paid' ? ALIMTALK_TEMPLATES.PAYMENT_CONFIRMED
+    : order.status === 'shipping' ? ALIMTALK_TEMPLATES.SHIPPING_STARTED
+    : order.status === 'done' ? ALIMTALK_TEMPLATES.SHIPPING_DELIVERED
+    : order.status === 'cancelled' ? ALIMTALK_TEMPLATES.ORDER_CANCELLED
+    : null;
+
+  const label = statusTemplate ? ALIMTALK_LABELS[statusTemplate] : null;
+  if (!label || !order.phone) return null;
+
+  const handleResend = async () => {
+    setSending(true);
+    setResult(null);
+    try {
+      const r = await resendForStatus({ ...order, id: order.id });
+      setResult(r.ok ? { ok: true } : { ok: false, error: r.error || r.message || '실패' });
+    } catch (err) {
+      setResult({ ok: false, error: err.message });
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={{
+      padding: '10px 12px', background: '#F0F9FF', borderRadius: 10,
+      border: '1px solid #BAE6FD',
+    }}>
+      <div style={{ fontSize: '0.75rem', color: '#075985', marginBottom: 6 }}>
+        💬 현재 상태 기준 알림
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0C4A6E', flex: 1 }}>
+          {label}
+        </span>
+        <button
+          onClick={handleResend}
+          disabled={sending}
+          style={{
+            padding: '8px 12px', minHeight: 36,
+            borderRadius: 8, border: 'none',
+            background: '#0284C7', color: 'white',
+            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+            opacity: sending ? 0.6 : 1, flexShrink: 0,
+          }}
+        >
+          {sending ? '보내는 중...' : '다시 보내기'}
+        </button>
+      </div>
+      {result && (
+        <div style={{
+          marginTop: 6, fontSize: '0.6875rem',
+          color: result.ok ? '#065F46' : '#991B1B',
+        }}>
+          {result.ok ? '✓ 발송 요청 완료 (로그 확인)' : `✗ ${result.error}`}
+        </div>
+      )}
     </div>
   );
 }
