@@ -54,9 +54,8 @@ export default function PaymentSuccess() {
             productName: order?.productName || '',
             price: Number(order?.price ?? amount),
             buyerName: order?.buyerName || '',
-            // Toss 승인 후 order.paymentMethod 는 "카드", "간편결제" 같은 한국어
-            // (toss-confirm.js 에서 tossData.method 로 덮어씀). label 로 그대로 노출.
-            paymentMethodLabel: order?.paymentMethod || '카드·간편결제',
+            // 시스템 값은 항상 'toss', 한국어 라벨은 별도 필드 우선
+            paymentMethodLabel: order?.paymentMethodLabel || '카드·간편결제',
             paymentMethod: 'toss',
             receiptUrl: data?.receiptUrl || '',
           },
