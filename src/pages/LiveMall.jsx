@@ -24,14 +24,17 @@ export default function LiveMall() {
   const displayName = seller?.name || seller?.shopName || sellerSlug;
   const isLive = !!(seller?.isLive || session?.isActive);
 
-  const sortedProducts = useMemo(() => {
-    if (!session?.isActive || !session.currentProductId) return products;
-    return [...products].sort((a, b) => {
-      if (a.id === session.currentProductId) return -1;
-      if (b.id === session.currentProductId) return 1;
-      return 0;
-    });
+  // 현재 라이브 중인 상품 (히어로 카드로 큼지막하게 별도 노출)
+  const currentProduct = useMemo(() => {
+    if (!session?.isActive || !session.currentProductId) return null;
+    return products.find((p) => p.id === session.currentProductId);
   }, [products, session]);
+
+  // 리스트에 표시할 상품 — currentProduct 는 히어로로 빠지니 제외
+  const otherProducts = useMemo(() => {
+    if (!currentProduct) return products;
+    return products.filter((p) => p.id !== currentProduct.id);
+  }, [products, currentProduct]);
 
   return (
     <div className="admin-container">
@@ -100,7 +103,86 @@ export default function LiveMall() {
           </div>
         )}
 
-        {/* 라이브몰 상품 */}
+        {/* 🔴 지금 판매중 — 라이브 영상 바로 아래 큼지막한 히어로 카드 */}
+        {currentProduct && (
+          <div style={{
+            position: 'relative',
+            marginTop: 12,
+            background: 'white',
+            borderRadius: 14,
+            overflow: 'hidden',
+            boxShadow: '0 6px 20px rgba(255,75,110,0.18)',
+            border: '2px solid var(--color-pink)',
+          }}>
+            {/* 라이브 펄스 표시 */}
+            <div style={{
+              position: 'absolute', top: 12, left: 12, zIndex: 2,
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--color-pink)', color: 'white',
+              padding: '6px 12px', borderRadius: 9999,
+              fontSize: '0.75rem', fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(255,75,110,0.4)',
+            }}>
+              <span className="live-dot" />
+              지금 판매중
+            </div>
+
+            {/* 사진 */}
+            <div
+              onClick={() => navigate(`/shop/${sellerSlug}/product/${currentProduct.id}`)}
+              style={{
+                width: '100%', height: 240,
+                background: currentProduct.imageUrl
+                  ? `url(${currentProduct.imageUrl}) center/cover no-repeat`
+                  : 'linear-gradient(135deg, var(--color-gray-100), var(--color-gray-200))',
+                cursor: 'pointer',
+              }}
+            />
+
+            {/* 정보 */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--color-gray-900)' }}>
+                {currentProduct.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-pink)' }}>
+                  {currentProduct.price?.toLocaleString('ko-KR')}원
+                </span>
+                {!currentProduct.unlimitedStock && (currentProduct.stock ?? 0) > 0 && (currentProduct.stock ?? 0) <= 10 && (
+                  <span style={{
+                    fontSize: '0.75rem', fontWeight: 700, color: '#92400E',
+                    background: '#FEF3C7', padding: '2px 8px', borderRadius: 4,
+                  }}>
+                    🔥 {currentProduct.stock}개 남음
+                  </span>
+                )}
+              </div>
+
+              {/* 바로 주문 버튼 */}
+              <button
+                onClick={() => navigate(`/shop/${sellerSlug}/order/${currentProduct.id}`)}
+                disabled={!currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0}
+                style={{
+                  width: '100%', marginTop: 12, padding: '14px',
+                  borderRadius: 12, border: 'none',
+                  background: !currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0
+                    ? 'var(--color-gray-200)' : 'var(--color-pink)',
+                  color: 'white', fontSize: '1rem', fontWeight: 700,
+                  cursor: !currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0
+                    ? 'not-allowed' : 'pointer',
+                  minHeight: 52,
+                  boxShadow: '0 4px 12px rgba(255,75,110,0.3)',
+                }}
+              >
+                {!currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0
+                  ? '품절됐어요'
+                  : `🛒 바로 주문하기 · ${currentProduct.price?.toLocaleString('ko-KR')}원`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 다른 라이브몰 상품들 */}
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
             상품 불러오는 중...
@@ -109,22 +191,30 @@ export default function LiveMall() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
             라이브몰에 등록된 상품이 없습니다
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {sortedProducts.map((product) => {
-              const isCurrent = session?.isActive && product.id === session.currentProductId;
-              return (
+        ) : otherProducts.length > 0 ? (
+          <>
+            {currentProduct && (
+              <div style={{
+                marginTop: 16, marginBottom: 8,
+                fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--color-gray-500)',
+              }}>
+                다른 라이브 상품
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {otherProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  isCurrent={isCurrent}
+                  isCurrent={false}
                   onDetail={() => navigate(`/shop/${sellerSlug}/product/${product.id}`)}
                   onOrder={() => navigate(`/shop/${sellerSlug}/order/${product.id}`)}
                 />
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
       <Footer />
       <ShopTabBar />
