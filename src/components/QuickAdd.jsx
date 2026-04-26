@@ -1,26 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { addDocument } from '../lib/firestoreAPI';
 import useImageUpload from '../hooks/useImageUpload';
 
 const CATEGORIES = ['의류', '잡화', '화장품', '건강식품'];
 
 export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
   const uploadPromiseRef = useRef(null);
   const { imageUrl, uploading, progress, uploadImage, resetImage } = useImageUpload();
-  const [step, setStep] = useState('camera');
+  const [step, setStep] = useState('source'); // 'source' (선택) → 'info' (정보 입력)
   const [previewUrl, setPreviewUrl] = useState('');
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  // 마운트 시 카메라 자동 열기
-  useEffect(() => {
-    if (step === 'camera') {
-      setTimeout(() => fileInputRef.current?.click(), 100);
-    }
-  }, [step]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -81,52 +75,87 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
     setSubmitting(false);
   };
 
-  // 카메라 대기 화면
-  if (step === 'camera') {
+  // 사진 소스 선택 화면 — 카메라 / 사진첩
+  if (step === 'source') {
     return (
       <div style={fullScreen}>
+        {/* 카메라용 input */}
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
+        {/* 사진첩용 input (capture 없음) */}
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
 
-        {/* 카메라 취소 시 보이는 UI */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', height: '100%', gap: 20, padding: 24,
-        }}>
-          <button onClick={onClose} style={{
+        {/* 닫기 버튼 */}
+        <button
+          onClick={onClose}
+          aria-label="닫기"
+          style={{
             position: 'absolute', top: 16, right: 16,
             width: 40, height: 40, borderRadius: '50%',
             background: 'rgba(255,255,255,0.2)', color: 'white',
             fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          ✕
+        </button>
+
+        {/* 메인 컨텐츠 */}
+        <div style={{
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          height: '100%', gap: 16, padding: '24px 20px',
+        }}>
+          <div style={{ fontSize: '3.5rem', opacity: 0.5, marginBottom: 8 }}>&#128247;</div>
+          <h2 style={{
+            color: 'white', fontSize: '1.375rem', fontWeight: 700,
+            margin: 0, textAlign: 'center',
           }}>
-            ✕
+            상품 사진 추가
+          </h2>
+          <p style={{
+            color: 'rgba(255,255,255,0.7)', fontSize: '0.9375rem',
+            margin: '0 0 16px', textAlign: 'center',
+          }}>
+            어떻게 사진을 추가할까요?
+          </p>
+
+          {/* 카메라 버튼 */}
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            style={sourceBtnPrimary}
+          >
+            <div style={sourceBtnIcon}>&#128247;</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 700 }}>사진 찍기</div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.85, marginTop: 2 }}>지금 카메라로 촬영</div>
+            </div>
+            <span style={{ fontSize: '1.25rem', opacity: 0.6 }}>›</span>
           </button>
 
-          <div style={{ fontSize: '4rem', opacity: 0.5 }}>&#128247;</div>
+          {/* 사진첩 버튼 */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              background: 'var(--color-pink)', color: 'white',
-              padding: '16px 32px', borderRadius: 12,
-              fontSize: '1.125rem', fontWeight: 700, minHeight: 56,
-            }}
+            onClick={() => galleryInputRef.current?.click()}
+            style={sourceBtnSecondary}
           >
-            &#128247; 사진 찍기
-          </button>
-          <button
-            onClick={() => {
-              fileInputRef.current?.removeAttribute('capture');
-              fileInputRef.current?.click();
-            }}
-            style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9375rem', padding: 12, minHeight: 44 }}
-          >
-            갤러리에서 선택
+            <div style={sourceBtnIcon}>&#128247;&#65039;</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 700 }}>사진첩에서 선택</div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: 2 }}>저장된 사진 사용</div>
+            </div>
+            <span style={{ fontSize: '1.25rem', opacity: 0.5 }}>›</span>
           </button>
         </div>
       </div>
@@ -257,4 +286,30 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
 const fullScreen = {
   position: 'fixed', inset: 0, zIndex: 300,
   background: '#111', display: 'flex', flexDirection: 'column',
+};
+
+const sourceBtnPrimary = {
+  width: '100%', maxWidth: 360,
+  display: 'flex', alignItems: 'center', gap: 14,
+  padding: '16px 18px', minHeight: 64,
+  borderRadius: 14, border: 'none',
+  background: 'var(--color-pink)', color: 'white',
+  cursor: 'pointer',
+  boxShadow: '0 4px 16px rgba(255,75,110,0.35)',
+};
+
+const sourceBtnSecondary = {
+  width: '100%', maxWidth: 360,
+  display: 'flex', alignItems: 'center', gap: 14,
+  padding: '16px 18px', minHeight: 64,
+  borderRadius: 14, border: '1px solid rgba(255,255,255,0.2)',
+  background: 'rgba(255,255,255,0.08)', color: 'white',
+  cursor: 'pointer',
+};
+
+const sourceBtnIcon = {
+  width: 40, height: 40, borderRadius: 10,
+  background: 'rgba(255,255,255,0.18)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: '1.375rem', flexShrink: 0,
 };

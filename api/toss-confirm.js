@@ -104,7 +104,10 @@ export default async function handler(req, res) {
 
     await orderRef.set({
       paymentStatus: 'paid',
-      paymentMethod: tossData.method || 'toss',
+      // paymentMethod는 시스템 값('toss')으로 유지 — 필터/취소 로직에서 사용
+      paymentMethod: 'toss',
+      // 한국어 결제수단 라벨(카드/간편결제/계좌이체 등)은 별도 필드
+      paymentMethodLabel: tossData.method || '카드·간편결제',
       paymentKey,
       tossOrderId: orderId,
       approvedAt: admin.firestore.FieldValue.serverTimestamp(),

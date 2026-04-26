@@ -2,6 +2,8 @@
 // URL: /shop/:sellerSlug/payment/success?paymentKey=&orderId=&amount=
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { getDocument } from '../lib/firestoreAPI';
+import { notifyPaymentConfirmed } from '../lib/alimtalk';
 
 export default function PaymentSuccess() {
   const { sellerSlug } = useParams();
@@ -35,14 +37,33 @@ export default function PaymentSuccess() {
           });
           return;
         }
+
+        // 주문 문서에서 상품명/구매자/실제 결제수단(Toss가 덮어쓴 값) 로드
+        // 실패해도 기본값으로 넘어갈 수 있도록 try/catch
+        let order = null;
+        try {
+          order = await getDocument('orders', orderId);
+        } catch (e) {
+          console.warn('order 문서 조회 실패 — 최소 정보로 이동', e);
+        }
+
+        // 결제 완료 알림톡 — 실패해도 플로우 막지 않음
+        if (order?.phone) {
+          notifyPaymentConfirmed({ ...order, id: orderId }).catch(() => {});
+        }
+
         // 성공 → OrderComplete로 state 전달하며 리다이렉트
         navigate(`/shop/${sellerSlug}/order-complete`, {
           replace: true,
           state: {
             orderId,
-            amount,
-            receiptUrl: data?.receiptUrl || '',
+            productName: order?.productName || '',
+            price: Number(order?.price ?? amount),
+            buyerName: order?.buyerName || '',
+            // 시스템 값은 항상 'toss', 한국어 라벨은 별도 필드 우선
+            paymentMethodLabel: order?.paymentMethodLabel || '카드·간편결제',
             paymentMethod: 'toss',
+            receiptUrl: data?.receiptUrl || '',
           },
         });
       } catch (err) {

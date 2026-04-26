@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
 import { addDocument, getDocument, updateDocument } from '../lib/firestoreAPI';
+import { notifyOrderReceived } from '../lib/alimtalk';
 import Footer from '../components/Footer';
 import '../styles/admin.css';
 
@@ -107,6 +108,14 @@ export default function Checkout() {
     const result = await createPendingOrder();
     if (!result) return;
     updateDocument('products', product.id, { stock: result.currentStock - result.needed }).catch(() => {});
+    // 주문 접수 알림톡 (무통장 입금 안내)
+    notifyOrderReceived({
+      id: result.orderId,
+      phone,
+      buyerName,
+      productName: product.name,
+      price: totalPrice,
+    }).catch(() => {});
     navigator.vibrate?.(200);
     navigate(`/shop/${sellerSlug}/order-complete`, {
       state: {
