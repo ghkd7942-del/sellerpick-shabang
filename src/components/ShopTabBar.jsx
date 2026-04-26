@@ -10,14 +10,19 @@ export default function ShopTabBar() {
   const { totalCount } = useCart();
 
   const isLive = !!session?.isActive;
-  // 라이브 위주 플랫폼 — 방송 중이면 첫 탭이 LIVE,
-  // 방송 없을 땐 일반 쇼핑몰
+  // 라이브 위주 플랫폼 — 첫 탭은 항상 라이브몰
+  // 라이브 ON: 'LIVE' + 펄스 인디케이터, 라이브 OFF: '라이브'
   const tabs = [
-    isLive
-      ? { path: `/shop/${sellerSlug}/live`, label: 'LIVE', icon: '🔴', liveIndicator: true, emphasize: true }
-      : { path: `/shop/${sellerSlug}`, label: '쇼핑몰', icon: '🛍️' },
+    {
+      path: `/shop/${sellerSlug}/live`,
+      label: isLive ? 'LIVE' : '라이브',
+      icon: '🔴',
+      liveIndicator: isLive,
+      emphasize: isLive,
+    },
     { path: `/shop/${sellerSlug}/cart`, label: '장바구니', icon: '🛒', badge: totalCount },
     { path: `/shop/${sellerSlug}/orders`, label: '주문내역', icon: '📦' },
+    { path: `/shop/${sellerSlug}/all`, label: '쇼핑몰', icon: '🛍️' },
     { path: `/shop/${sellerSlug}/my`, label: '마이', icon: '👤' },
   ];
 
