@@ -306,7 +306,7 @@ export default function LiveMode() {
 
         <FAB onClick={() => setQuickAddOpen(true)} />
         {quickAddOpen && (
-          <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+          <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} defaultIsLive={true} />
         )}
       </div>
     );
@@ -445,7 +445,7 @@ export default function LiveMode() {
       {/* QuickAdd FAB */}
       <FAB onClick={() => setQuickAddOpen(true)} />
       {quickAddOpen && (
-        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} defaultIsLive={true} />
       )}
     </div>
   );

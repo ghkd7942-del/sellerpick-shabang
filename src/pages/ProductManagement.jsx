@@ -5,7 +5,7 @@ import useProducts from '../hooks/useProducts';
 import useOrders from '../hooks/useOrders';
 import BottomSheet from '../components/BottomSheet';
 import ProductForm from '../components/ProductForm';
-import QuickAdd from '../components/QuickAdd';
+import ShopProductForm from '../components/ShopProductForm';
 import ProductDetailView from '../components/ProductDetailView';
 import EditShopProduct from '../components/EditShopProduct';
 import ViewSwitcher from '../components/ViewSwitcher';
@@ -32,7 +32,7 @@ export default function ProductManagement() {
   const [editProduct, setEditProduct] = useState(null);
   const [cloneProduct, setCloneProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [shopFormOpen, setShopFormOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
 
@@ -702,9 +702,13 @@ export default function ProductManagement() {
         </div>
       )}
 
-      <FAB onClick={() => setQuickAddOpen(true)} />
-      {quickAddOpen && (
-        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+      {/* 쇼핑몰 상품 등록 — 정식 폼 (옵션·상세이미지 포함) */}
+      <FAB onClick={() => setShopFormOpen(true)} />
+      {shopFormOpen && (
+        <ShopProductForm
+          onClose={() => setShopFormOpen(false)}
+          onSuccess={() => { setShopFormOpen(false); refetch(); }}
+        />
       )}
       <BottomTabBar />
     </div>
