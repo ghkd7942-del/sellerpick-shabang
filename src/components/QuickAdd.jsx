@@ -31,6 +31,10 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
   const [singleStock, setSingleStock] = useState(String(DEFAULT_STOCK));
   // 옵션별 재고 — { 'S': '10', 'M': '10', ... }
   const [variantStocks, setVariantStocks] = useState({});
+  // 사이즈별 가격 다름 토글 (OFF = 모든 사이즈 = 상품 가격)
+  const [perVariantPricing, setPerVariantPricing] = useState(false);
+  // 옵션별 가격 — { 'S': '', 'M': '', ... } (perVariantPricing=true 일 때만 사용)
+  const [variantPrices, setVariantPrices] = useState({});
   // 직접 추가한 옵션명 입력
   const [customSizeInput, setCustomSizeInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +75,11 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
   const updateSizeStock = (s, val) => {
     const cleaned = val.replace(/[^0-9]/g, '');
     setVariantStocks((prev) => ({ ...prev, [s]: cleaned }));
+  };
+
+  const updateSizePrice = (s, val) => {
+    const cleaned = val.replace(/[^0-9]/g, '');
+    setVariantPrices((prev) => ({ ...prev, [s]: cleaned }));
   };
 
   const handleFileChange = (e) => {
@@ -123,18 +132,28 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
         }
       }
 
+      // 메인 상품 가격
+      const mainPrice = parseInt(price.replace(/[^0-9]/g, ''), 10) || 0;
+
       // variants 배열 빌드 — 옵션 모드일 때만
+      // perVariantPricing=true 면 각 사이즈 가격 사용 (빈 값은 mainPrice fallback)
+      // perVariantPricing=false 면 모든 사이즈가 mainPrice 동일
       const variants = useOptions
-        ? Object.entries(variantStocks).map(([sz, st]) => ({
-            name: sz,
-            stock: parseInt(st, 10) || 0,
-            price: 0, // 빠른 등록은 사이즈별 가격 동일 — 필요시 EditShopProduct 에서 조정
-          }))
+        ? Object.entries(variantStocks).map(([sz, st]) => {
+            const customP = perVariantPricing
+              ? parseInt(variantPrices[sz] || '', 10)
+              : NaN;
+            return {
+              name: sz,
+              stock: parseInt(st, 10) || 0,
+              price: Number.isFinite(customP) && customP > 0 ? customP : mainPrice,
+            };
+          })
         : [];
 
       const payload = {
         name,
-        price: parseInt(price.replace(/[^0-9]/g, ''), 10),
+        price: mainPrice,
         stock: totalStock,
         imageUrl: finalImageUrl || '',
         category: category || '',
@@ -342,45 +361,104 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>
-                사이즈별 재고
+                사이즈별 재고{perVariantPricing ? '·가격' : ''}
               </label>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
                 총 {totalStock}개
               </span>
             </div>
+
+            {/* 사이즈별 가격 다름 토글 */}
+            <button
+              onClick={() => setPerVariantPricing((v) => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 12px', marginBottom: 8,
+                borderRadius: 10,
+                border: '1px solid',
+                borderColor: perVariantPricing ? 'var(--color-pink)' : 'var(--color-gray-200)',
+                background: perVariantPricing ? '#FFF0F3' : 'white',
+                cursor: 'pointer',
+                fontSize: '0.8125rem', color: 'var(--color-gray-700)',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{
+                width: 20, height: 20, borderRadius: 5,
+                border: '2px solid',
+                borderColor: perVariantPricing ? 'var(--color-pink)' : 'var(--color-gray-300)',
+                background: perVariantPricing ? 'var(--color-pink)' : 'white',
+                color: 'white', fontSize: 11,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {perVariantPricing ? '✓' : ''}
+              </span>
+              <span style={{ flex: 1 }}>사이즈별 가격 다르게 설정</span>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>
+                {perVariantPricing ? '각 사이즈 가격 입력' : `모두 ${formatPrice(price) || '0'}원`}
+              </span>
+            </button>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {Object.entries(variantStocks).map(([sz, st]) => (
                 <div key={sz} style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
+                  display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
                   padding: '8px 12px', borderRadius: 10,
                   border: '1px solid var(--color-gray-200)', background: 'white',
                 }}>
                   <span style={{
-                    minWidth: 56,
+                    minWidth: 48,
                     fontSize: '0.875rem', fontWeight: 700,
                     color: 'var(--color-gray-900)',
                   }}>
                     {sz}
                   </span>
-                  <input
-                    inputMode="numeric"
-                    value={st}
-                    onChange={(e) => updateSizeStock(sz, e.target.value)}
-                    placeholder="0"
-                    style={{
-                      flex: 1, padding: '8px 12px', borderRadius: 8,
-                      border: '1px solid var(--color-gray-200)',
-                      fontSize: '0.9375rem', outline: 'none', textAlign: 'right',
-                    }}
-                  />
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)' }}>개</span>
+                  {/* 가격 (perVariantPricing 일 때만) */}
+                  {perVariantPricing && (
+                    <div style={{ position: 'relative', flex: '1 1 120px', minWidth: 100 }}>
+                      <input
+                        inputMode="numeric"
+                        value={formatPrice(variantPrices[sz] || '')}
+                        onChange={(e) => updateSizePrice(sz, e.target.value)}
+                        placeholder={formatPrice(price) || '가격'}
+                        style={{
+                          width: '100%', padding: '8px 28px 8px 10px', borderRadius: 8,
+                          border: '1px solid var(--color-gray-200)',
+                          fontSize: '0.875rem', outline: 'none', textAlign: 'right',
+                        }}
+                      />
+                      <span style={{
+                        position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                        color: 'var(--color-gray-400)', fontSize: '0.75rem',
+                      }}>원</span>
+                    </div>
+                  )}
+                  {/* 재고 */}
+                  <div style={{ position: 'relative', flex: '1 1 80px', minWidth: 70 }}>
+                    <input
+                      inputMode="numeric"
+                      value={st}
+                      onChange={(e) => updateSizeStock(sz, e.target.value)}
+                      placeholder="0"
+                      style={{
+                        width: '100%', padding: '8px 24px 8px 10px', borderRadius: 8,
+                        border: '1px solid var(--color-gray-200)',
+                        fontSize: '0.875rem', outline: 'none', textAlign: 'right',
+                      }}
+                    />
+                    <span style={{
+                      position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                      color: 'var(--color-gray-400)', fontSize: '0.75rem',
+                    }}>개</span>
+                  </div>
                   <button
                     onClick={() => removeSize(sz)}
                     aria-label={`${sz} 제거`}
                     style={{
                       width: 28, height: 28, borderRadius: 6, border: 'none',
                       background: 'var(--color-gray-100)', color: 'var(--color-gray-500)',
-                      cursor: 'pointer', fontSize: 14,
+                      cursor: 'pointer', fontSize: 14, flexShrink: 0,
                     }}
                   >
                     ✕
