@@ -29,6 +29,8 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
   const [category, setCategory] = useState('');
   // 단일 재고 (옵션 없을 때)
   const [singleStock, setSingleStock] = useState(String(DEFAULT_STOCK));
+  // 한정수량 토글 — 단일 모드에서만. OFF=무제한, ON=사용자 입력
+  const [hasLimitedStock, setHasLimitedStock] = useState(false);
   // 옵션별 재고 — { 'S': '10', 'M': '10', ... }
   const [variantStocks, setVariantStocks] = useState({});
   // 사이즈별 가격 다름 토글 (OFF = 모든 사이즈 = 상품 가격)
@@ -104,10 +106,15 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
     return num.toLocaleString('ko-KR');
   };
 
-  // 합계 재고 계산 — 옵션 모드는 합산
+  // 합계 재고 계산
+  // - 옵션 모드: 사이즈별 합산
+  // - 단일 + 한정 OFF: 무제한 (UI 표시용 0, 실제 저장은 큰 수)
+  // - 단일 + 한정 ON: 사용자 입력값
   const totalStock = useOptions
     ? Object.values(variantStocks).reduce((sum, v) => sum + (parseInt(v, 10) || 0), 0)
-    : parseInt(singleStock, 10) || 0;
+    : (hasLimitedStock ? (parseInt(singleStock, 10) || 0) : 0);
+
+  const UNLIMITED_STOCK_VALUE = 9999;
 
   const canSubmit = !!name && !!price && !submitting && (
     useOptions ? Object.keys(variantStocks).length > 0 : true
@@ -151,10 +158,15 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
           })
         : [];
 
+      // 단일 모드 + 한정 OFF → 무제한 처리 (큰 수 + unlimitedStock 플래그)
+      const isUnlimited = !useOptions && !hasLimitedStock;
+      const finalStock = isUnlimited ? UNLIMITED_STOCK_VALUE : totalStock;
+
       const payload = {
         name,
         price: mainPrice,
-        stock: totalStock,
+        stock: finalStock,
+        unlimitedStock: isUnlimited,
         imageUrl: finalImageUrl || '',
         category: category || '',
         options: useOptions ? Object.keys(variantStocks).join(', ') : '',
@@ -497,13 +509,53 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
         ) : (
           <div>
             <label style={labelStyle}>재고</label>
+
+            {/* 한정수량 토글 */}
+            <button
+              onClick={() => setHasLimitedStock((v) => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 12px', marginBottom: 8,
+                borderRadius: 10,
+                border: '1px solid',
+                borderColor: hasLimitedStock ? 'var(--color-pink)' : 'var(--color-gray-200)',
+                background: hasLimitedStock ? '#FFF0F3' : 'white',
+                cursor: 'pointer',
+                fontSize: '0.8125rem', color: 'var(--color-gray-700)',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{
+                width: 20, height: 20, borderRadius: 5,
+                border: '2px solid',
+                borderColor: hasLimitedStock ? 'var(--color-pink)' : 'var(--color-gray-300)',
+                background: hasLimitedStock ? 'var(--color-pink)' : 'white',
+                color: 'white', fontSize: 11,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {hasLimitedStock ? '✓' : ''}
+              </span>
+              <span style={{ flex: 1 }}>한정 수량으로 판매</span>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>
+                {hasLimitedStock ? '수량 직접 입력' : '한정 없음 (무제한)'}
+              </span>
+            </button>
+
             <div style={{ position: 'relative' }}>
               <input
                 inputMode="numeric"
-                value={singleStock}
+                value={hasLimitedStock ? singleStock : ''}
                 onChange={(e) => setSingleStock(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="0"
-                style={{ ...inputStyle, paddingRight: 40 }}
+                placeholder={hasLimitedStock ? '0' : '00 (한정 없음)'}
+                disabled={!hasLimitedStock}
+                style={{
+                  ...inputStyle,
+                  paddingRight: 40,
+                  background: hasLimitedStock ? 'white' : 'var(--color-gray-50)',
+                  color: hasLimitedStock ? 'var(--color-gray-900)' : 'var(--color-gray-400)',
+                  cursor: hasLimitedStock ? 'text' : 'not-allowed',
+                }}
               />
               <span style={{
                 position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
@@ -536,7 +588,13 @@ export default function QuickAdd({ onClose, onSuccess, defaultIsLive = true }) {
         >
           {submitting
             ? (uploading ? `사진 업로드 중... ${progress}%` : '등록 중...')
-            : `⚡ 등록하기${useOptions ? ` (총 ${totalStock}개)` : ''}`}
+            : `⚡ 등록하기${
+                useOptions
+                  ? ` (총 ${totalStock}개)`
+                  : hasLimitedStock
+                    ? ` (${totalStock}개 한정)`
+                    : ' (한정 없음)'
+              }`}
         </button>
       </div>
     </div>

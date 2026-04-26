@@ -456,7 +456,7 @@ export default function LiveMode() {
                 <span className="live-dot" />
                 지금 판매중
               </div>
-              {(currentProduct.stock ?? 0) === 0 && (
+              {!currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0 && (
                 <div style={{
                   position: 'absolute', top: 12, right: 12,
                   background: '#7F1D1D', color: 'white',
@@ -466,7 +466,7 @@ export default function LiveMode() {
                   품절
                 </div>
               )}
-              {orderCountMap[currentProduct.id] > 0 && (currentProduct.stock ?? 0) > 0 && (
+              {orderCountMap[currentProduct.id] > 0 && (currentProduct.unlimitedStock || (currentProduct.stock ?? 0) > 0) && (
                 <div style={{
                   position: 'absolute', top: 12, right: 12,
                   background: 'rgba(0,0,0,0.7)', color: 'white',
@@ -493,7 +493,7 @@ export default function LiveMode() {
                   {currentProduct.price?.toLocaleString('ko-KR')}원
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
-                  재고 {currentProduct.stock ?? 0}
+                  재고 {currentProduct.unlimitedStock ? '한정 없음' : (currentProduct.stock ?? 0)}
                 </div>
               </div>
             </div>
@@ -585,28 +585,34 @@ export default function LiveMode() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
                 <span>재고</span>
-                <strong style={{
-                  color: (currentProduct.stock ?? 0) === 0 ? '#991B1B' : 'var(--color-gray-700)',
-                }}>
-                  {currentProduct.stock ?? 0}개
-                </strong>
+                {currentProduct.unlimitedStock ? (
+                  <strong style={{ color: 'var(--color-gray-700)' }}>한정 없음</strong>
+                ) : (
+                  <strong style={{
+                    color: (currentProduct.stock ?? 0) === 0 ? '#991B1B' : 'var(--color-gray-700)',
+                  }}>
+                    {currentProduct.stock ?? 0}개
+                  </strong>
+                )}
               </div>
             </div>
 
-            {/* 매진 / 매진 해제 */}
-            <button
-              onClick={handleQuickStockToggle}
-              disabled={working}
-              style={liveActionBtn(
-                (currentProduct.stock ?? 0) > 0 ? '#FEE2E2' : '#D1FAE5',
-                (currentProduct.stock ?? 0) > 0 ? '#991B1B' : '#065F46',
-              )}
-            >
-              <span style={{ fontSize: '1.25rem' }}>{(currentProduct.stock ?? 0) > 0 ? '🚫' : '✅'}</span>
-              <span style={{ flex: 1, textAlign: 'left' }}>
-                {(currentProduct.stock ?? 0) > 0 ? '품절 처리' : '품절 해제 (재고 99로)'}
-              </span>
-            </button>
+            {/* 매진 / 매진 해제 (무제한 상품엔 의미 없으니 숨김) */}
+            {!currentProduct.unlimitedStock && (
+              <button
+                onClick={handleQuickStockToggle}
+                disabled={working}
+                style={liveActionBtn(
+                  (currentProduct.stock ?? 0) > 0 ? '#FEE2E2' : '#D1FAE5',
+                  (currentProduct.stock ?? 0) > 0 ? '#991B1B' : '#065F46',
+                )}
+              >
+                <span style={{ fontSize: '1.25rem' }}>{(currentProduct.stock ?? 0) > 0 ? '🚫' : '✅'}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  {(currentProduct.stock ?? 0) > 0 ? '품절 처리' : '품절 해제 (재고 99로)'}
+                </span>
+              </button>
+            )}
 
             {/* 상품 수정 (정식 폼) */}
             <button
