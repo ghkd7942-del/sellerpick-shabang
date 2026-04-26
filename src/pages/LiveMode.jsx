@@ -385,14 +385,29 @@ export default function LiveMode() {
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 56, background: 'rgba(0,0,0,0.8)',
+        padding: '0 8px 0 4px', height: 56, background: 'rgba(0,0,0,0.8)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="live-dot" style={{ background: '#FF4B6E' }} />
-          <span style={{ color: 'white', fontWeight: 700, fontSize: '0.9375rem' }}>LIVE</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8125rem' }}>{elapsed}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* 홈으로 (방송은 백그라운드 유지) */}
+          <button
+            onClick={() => navigate('/admin')}
+            aria-label="홈으로"
+            title="방송 유지하고 홈으로"
+            style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', color: 'white',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.125rem',
+            }}
+          >
+            ←
+          </button>
+          <span className="live-dot" style={{ background: '#FF4B6E', marginLeft: 6 }} />
+          <span style={{ color: 'white', fontWeight: 700, fontSize: '0.9375rem', marginLeft: 4 }}>LIVE</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8125rem', marginLeft: 4 }}>{elapsed}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             background: 'var(--color-pink)', color: 'white',
             padding: '4px 10px', borderRadius: 9999,
@@ -499,7 +514,15 @@ export default function LiveMode() {
             product={p}
             isCurrent={p.id === session.currentProductId}
             orderCount={orderCountMap[p.id] || 0}
-            onSelect={setCurrentProduct}
+            onSelect={(id) => {
+              // 이미 현재 상품이면 → 액션 시트(수정/매진/빼기)
+              // 다른 상품이면 → 그 상품을 현재로 전환
+              if (id === session?.currentProductId) {
+                setActionSheetOpen(true);
+              } else {
+                setCurrentProduct(id);
+              }
+            }}
           />
         ))}
       </div>
