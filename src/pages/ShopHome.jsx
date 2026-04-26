@@ -1,9 +1,7 @@
-// 쇼핑몰 (항상 판매하는 상품 · isLive !== true)
-// 단, 방송 중이면 자동으로 LiveMall 로 redirect — 라이브 위주 플랫폼
-import { useEffect } from 'react';
+// 쇼핑몰 (전체 상품 페이지 · 부수 진입점 /shop/:slug/all)
+// 메인 진입(/shop/:slug, /s/:slug)은 라이브몰로 이동했음
 import { useNavigate, useParams } from 'react-router-dom';
 import useLiveProducts from '../hooks/useLiveProducts';
-import useLiveSession from '../hooks/useLiveSession';
 import useAuth from '../hooks/useAuth';
 import useSeller from '../hooks/useSeller';
 import ShopTabBar from '../components/ShopTabBar';
@@ -20,26 +18,7 @@ export default function ShopHome() {
   const { user } = useAuth();
   const { products, loading } = useLiveProducts({ filter: 'shop' });
   const { seller, slug } = useSeller(sellerSlug);
-  const { session, loading: sessionLoading } = useLiveSession();
   const displayName = seller?.name || seller?.shopName || sellerSlug;
-
-  // 방송 중이면 LiveMall 로 자동 이동 (라이브 위주 플랫폼)
-  useEffect(() => {
-    if (!sessionLoading && session?.isActive) {
-      navigate(`/shop/${sellerSlug}/live`, { replace: true });
-    }
-  }, [sessionLoading, session?.isActive, sellerSlug, navigate]);
-
-  // 방송 중일 때는 빠른 점멸 방지를 위해 빈 화면 (곧 redirect)
-  if (sessionLoading || session?.isActive) {
-    return (
-      <div className="admin-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <span style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
-          {session?.isActive ? '🔴 라이브 방송으로 이동 중...' : ''}
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="admin-container">
