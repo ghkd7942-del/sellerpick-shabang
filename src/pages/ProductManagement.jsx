@@ -157,9 +157,12 @@ export default function ProductManagement() {
   const hiddenCount = products.filter((p) => p.hidden === true).length;
   const activeProducts = products.filter((p) => !p.hidden);
   const liveCount = activeProducts.filter((p) => p.isLive).length;
-  const soldOutCount = activeProducts.filter((p) => (p.stock || 0) === 0).length;
+  // 무제한 상품은 품절/저재고 집계에서 제외
+  const soldOutCount = activeProducts.filter(
+    (p) => !p.unlimitedStock && (p.stock || 0) === 0,
+  ).length;
   const lowStockCount = activeProducts.filter(
-    (p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD,
+    (p) => !p.unlimitedStock && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD,
   ).length;
   const pendingOrderCount = orders.filter(
     (o) => o.status === 'new' || o.status === 'paid'
@@ -532,15 +535,19 @@ export default function ProductManagement() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
                     {product.category && <span>{product.category}</span>}
-                    <span>
-                      총 재고 <strong style={{
-                        color: (product.stock ?? 0) === 0
-                          ? '#991B1B'
-                          : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD
-                            ? '#92400E'
-                            : 'var(--color-gray-700)',
-                      }}>{product.stock ?? 0}</strong>
-                    </span>
+                    {product.unlimitedStock ? (
+                      <span>재고 <strong style={{ color: 'var(--color-gray-700)' }}>한정 없음</strong></span>
+                    ) : (
+                      <span>
+                        총 재고 <strong style={{
+                          color: (product.stock ?? 0) === 0
+                            ? '#991B1B'
+                            : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD
+                              ? '#92400E'
+                              : 'var(--color-gray-700)',
+                        }}>{product.stock ?? 0}</strong>
+                      </span>
+                    )}
                     {Array.isArray(product.variants) && product.variants.length > 0 && (
                       <span>옵션 {product.variants.length}</span>
                     )}
