@@ -9,7 +9,7 @@
 |------|-----|
 | 이름 | 샤방이 (Sellerpick Shabang) |
 | 성격 | 라이브 커머스 / 쇼핑몰 플랫폼 |
-| 로컬 폴더 | `/Volumes/SSD 2T/코딩/여왕누나` |
+| 로컬 폴더 | `~/Desktop/코딩/여왕누나` |
 | Vercel 프로젝트 | `sellerpick-shabang` |
 | 도메인 | https://sellerpick-shabang.vercel.app |
 | GitHub | https://github.com/ghkd7942-del/sellerpick-shabang |
