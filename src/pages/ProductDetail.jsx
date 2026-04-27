@@ -169,10 +169,26 @@ export default function ProductDetail() {
           <h2 style={{ fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.4 }}>
             {product.name}
           </h2>
+          {product.originalPrice && product.originalPrice > currentPrice && (
+            <div style={{
+              fontSize: '0.9375rem', color: 'var(--color-gray-400)',
+              textDecoration: 'line-through', marginTop: 6,
+            }}>
+              {product.originalPrice.toLocaleString('ko-KR')}원
+            </div>
+          )}
           <div style={{
-            display: 'flex', alignItems: 'baseline', gap: 6,
-            marginTop: 8,
+            display: 'flex', alignItems: 'baseline', gap: 8,
+            marginTop: product.originalPrice && product.originalPrice > currentPrice ? 2 : 8,
+            flexWrap: 'wrap',
           }}>
+            {product.originalPrice && product.originalPrice > currentPrice && (
+              <span style={{
+                fontSize: '1.5rem', fontWeight: 800, color: '#FF3B30',
+              }}>
+                {Math.round((1 - currentPrice / product.originalPrice) * 100)}%
+              </span>
+            )}
             <span style={{
               fontSize: '1.5rem', fontWeight: 800,
               color: 'var(--color-pink)',

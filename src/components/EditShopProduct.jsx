@@ -127,6 +127,9 @@ export default function EditShopProduct({ product, onClose, mode = 'edit' }) {
     return m;
   });
 
+  const [originalPrice, setOriginalPrice] = useState(
+    product.originalPrice ? String(product.originalPrice) : ''
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const hasColors = colors.length > 0;
@@ -316,6 +319,7 @@ export default function EditShopProduct({ product, onClose, mode = 'edit' }) {
         stockMatrix: cleanMatrix,
         stock: totalStock,
         price: isFinite(minPrice) && minPrice > 0 ? minPrice : (product.price || 0),
+        originalPrice: toNum(originalPrice) || null,
         hasOptions: cleanVariants.length > 1 || Boolean(product.hasOptions),
         options: cleanVariants.map((v) => v.name).join(', '),
       };
@@ -422,6 +426,30 @@ export default function EditShopProduct({ product, onClose, mode = 'edit' }) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="상품 소개, 사용 방법, 포인트 등"
         />
+      </div>
+
+      {/* 정가 (할인 표시용) */}
+      <div style={sectionTitleStyle}>정가 (선택)</div>
+      <div>
+        <div style={{ position: 'relative' }}>
+          <input
+            style={{ ...inputStyle, paddingRight: 36 }}
+            inputMode="numeric"
+            placeholder="할인 전 가격 — 입력 시 자동 할인율 표시"
+            value={formatPrice(originalPrice)}
+            onChange={(e) => setOriginalPrice(e.target.value)}
+          />
+          <span style={{
+            position: 'absolute', right: 14, top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--color-gray-500)', fontSize: '0.875rem',
+          }}>
+            원
+          </span>
+        </div>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)', marginTop: 4 }}>
+          정가가 판매가보다 크면 상품 카드에 <span style={{ textDecoration: 'line-through' }}>정가</span> 와 할인율(%)이 함께 표시됩니다.
+        </div>
       </div>
 
       {/* 사이즈·가격 */}

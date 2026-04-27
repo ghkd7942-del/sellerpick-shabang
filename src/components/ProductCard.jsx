@@ -2,6 +2,10 @@
 export default function ProductCard({ product, onOrder, onDetail, isCurrent = false }) {
   const soldOut = (product.stock ?? 0) <= 0;
   const hasVariants = Array.isArray(product.variants) && product.variants.length > 1;
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const discountPercent = hasDiscount
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : 0;
   return (
     <div
       className={isCurrent ? 'live-current-card' : ''}
@@ -49,15 +53,31 @@ export default function ProductCard({ product, onOrder, onDetail, isCurrent = fa
               }}>
                 {product.name}
               </div>
+              {hasDiscount && (
+                <div style={{
+                  fontSize: '0.8125rem', color: 'var(--color-gray-400)',
+                  textDecoration: 'line-through', marginTop: 4,
+                }}>
+                  {product.originalPrice.toLocaleString('ko-KR')}원
+                </div>
+              )}
               <div style={{
                 fontSize: '1.125rem', fontWeight: 700,
-                color: 'var(--color-pink)', marginTop: 4,
+                color: 'var(--color-pink)', marginTop: hasDiscount ? 2 : 4,
+                display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
               }}>
-                {product.price?.toLocaleString('ko-KR')}원
+                {hasDiscount && (
+                  <span style={{
+                    fontSize: '1rem', fontWeight: 800, color: '#FF3B30',
+                  }}>
+                    {discountPercent}%
+                  </span>
+                )}
+                <span>{product.price?.toLocaleString('ko-KR')}원</span>
                 {hasVariants && (
                   <span style={{
                     fontSize: '0.75rem', fontWeight: 500,
-                    color: 'var(--color-gray-500)', marginLeft: 4,
+                    color: 'var(--color-gray-500)',
                   }}>
                     부터
                   </span>

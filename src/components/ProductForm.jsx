@@ -29,6 +29,7 @@ export default function ProductForm({ onClose, onSuccess }) {
   const [form, setForm] = useState({
     name: '',
     price: '',
+    originalPrice: '',
     stock: '',
     category: '',
     options: '',
@@ -59,9 +60,11 @@ export default function ProductForm({ onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
+      const originalPriceNum = parseInt(form.originalPrice.replace(/[^0-9]/g, ''), 10);
       await addDocument('products', {
         name: form.name,
         price: parseInt(form.price.replace(/[^0-9]/g, ''), 10),
+        originalPrice: isNaN(originalPriceNum) ? null : originalPriceNum,
         stock: parseInt(form.stock, 10) || 0,
         imageUrl: imageUrl || '',
         category: form.category,
@@ -148,6 +151,30 @@ export default function ProductForm({ onClose, onSuccess }) {
           value={form.name}
           onChange={(e) => handleChange('name', e.target.value)}
         />
+      </div>
+
+      {/* 정가 (할인 전 가격) */}
+      <div>
+        <label style={labelStyle}>정가 (선택 — 할인 표시용)</label>
+        <div style={{ position: 'relative' }}>
+          <input
+            style={{ ...inputStyle, paddingRight: 36 }}
+            inputMode="numeric"
+            placeholder="할인 전 가격 입력 시 자동으로 할인율 표시"
+            value={formatPrice(form.originalPrice)}
+            onChange={(e) => handleChange('originalPrice', e.target.value)}
+          />
+          <span style={{
+            position: 'absolute',
+            right: 14,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--color-gray-500)',
+            fontSize: '0.875rem',
+          }}>
+            원
+          </span>
+        </div>
       </div>
 
       {/* 판매가 */}
