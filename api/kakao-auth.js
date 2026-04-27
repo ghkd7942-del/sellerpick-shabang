@@ -62,6 +62,16 @@ export default async function handler(req, res) {
     const name = profile.nickname || '';
     const photoURL = profile.profile_image_url || '';
     const email = kakaoAccount.email || '';
+    const phoneRaw = kakaoAccount.phone_number || '';
+    const phone = phoneRaw.startsWith('+82 ')
+      ? '0' + phoneRaw.slice(4).replace(/-/g, '')
+      : phoneRaw;
+    const shipping = Array.isArray(kakaoAccount.shipping_addresses)
+      ? kakaoAccount.shipping_addresses[0]
+      : null;
+    const address = shipping
+      ? [shipping.base_address, shipping.detail_address].filter(Boolean).join(' ')
+      : '';
 
     try {
       await admin.auth().updateUser(uid, {
@@ -101,6 +111,8 @@ export default async function handler(req, res) {
         photoURL,
         provider: 'kakao',
         kakaoId,
+        phone,
+        address,
         sellerSlug: sellerSlug || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
@@ -112,6 +124,8 @@ export default async function handler(req, res) {
       if (photoURL && existing.photoURL !== photoURL) updates.photoURL = photoURL;
       if (email && existing.email !== email) updates.email = email;
       if (!existing.provider) updates.provider = 'kakao';
+      if (phone && !existing.phone) updates.phone = phone;
+      if (address && !existing.address) updates.address = address;
       if (Object.keys(updates).length) await userRef.set(updates, { merge: true });
       profileData = { ...existing, ...updates };
     }
