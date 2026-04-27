@@ -22,6 +22,7 @@ import CustomerLogin from './pages/CustomerLogin';
 import MyPage from './pages/MyPage';
 import Legal from './pages/Legal';
 import KakaoCallback from './pages/KakaoCallback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
 
           {/* 관리자 — 로그인 필수 */}
