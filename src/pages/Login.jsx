@@ -29,7 +29,7 @@ export default function Login() {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/shop/샤방이');
+      navigate('/shop/샤방이/onboarding');
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError('로그인 실패: ' + (err.message || '다시 시도해주세요'));

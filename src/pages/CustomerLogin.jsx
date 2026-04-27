@@ -15,7 +15,7 @@ export default function CustomerLogin() {
     try {
       if (provider === 'google') {
         await loginWithGoogle();
-        navigate(`/shop/${sellerSlug}`);
+        navigate(`/shop/${sellerSlug}/onboarding`);
       } else if (provider === 'kakao') {
         // 리다이렉트 방식 — 이 아래로는 실행되지 않음 (콜백은 /auth/kakao/callback)
         loginWithKakao(sellerSlug);

@@ -38,7 +38,11 @@ export default function KakaoCallback() {
 
         await signInWithCustomToken(auth, data.firebaseToken);
 
-        const target = sellerSlug ? `/shop/${sellerSlug}` : '/';
+        const slug = sellerSlug || '샤방이';
+        const needsOnboarding = !data.profile?.phone;
+        const target = needsOnboarding
+          ? `/shop/${slug}/onboarding`
+          : `/shop/${slug}`;
         navigate(target, { replace: true });
       } catch (e) {
         console.error(e);

@@ -23,6 +23,7 @@ import MyPage from './pages/MyPage';
 import Legal from './pages/Legal';
 import KakaoCallback from './pages/KakaoCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
           <Route path="/shop/:sellerSlug/order-complete" element={<OrderComplete />} />
           <Route path="/shop/:sellerSlug/orders" element={<OrderTrack />} />
           <Route path="/shop/:sellerSlug/login" element={<CustomerLogin />} />
+          <Route path="/shop/:sellerSlug/onboarding" element={<Onboarding />} />
           <Route path="/shop/:sellerSlug/my" element={<MyPage />} />
         </Routes>
       </BrowserRouter>
