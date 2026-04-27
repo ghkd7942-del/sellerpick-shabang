@@ -6,7 +6,16 @@ export default function OrderComplete() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { productName, price, buyerName, paymentMethod } = location.state || {};
+  const { productName, price, buyerName, paymentMethod, paymentMethodLabel, receiptUrl } = location.state || {};
+  const priceNum = Number(price) || 0;
+  const methodLabel =
+    paymentMethod === 'bank' ? '무통장 입금'
+      : paymentMethodLabel ? paymentMethodLabel
+      : paymentMethod === 'toss' ? '카드·간편결제'
+      // 과거 데이터 호환
+      : paymentMethod === 'kakaopay' ? '카카오페이'
+      : paymentMethod === 'tosspay' ? '토스페이'
+      : '-';
 
   return (
     <div className="admin-container">
@@ -38,14 +47,12 @@ export default function OrderComplete() {
           <div style={rowStyle}>
             <span style={rowLabel}>금액</span>
             <span style={{ ...rowValue, color: 'var(--color-pink)', fontWeight: 700 }}>
-              {price ? price.toLocaleString('ko-KR') + '원' : '-'}
+              {priceNum ? priceNum.toLocaleString('ko-KR') + '원' : '-'}
             </span>
           </div>
           <div style={rowStyle}>
             <span style={rowLabel}>결제방법</span>
-            <span style={rowValue}>
-              {paymentMethod === 'kakaopay' ? '카카오페이' : paymentMethod === 'tosspay' ? '토스페이' : '무통장 입금'}
-            </span>
+            <span style={rowValue}>{methodLabel}</span>
           </div>
           {paymentMethod === 'bank' && (
             <>
@@ -59,15 +66,30 @@ export default function OrderComplete() {
               </div>
             </>
           )}
+          {paymentMethod === 'toss' && receiptUrl && (
+            <div style={{ ...rowStyle, borderBottom: 'none' }}>
+              <span style={rowLabel}>영수증</span>
+              <a
+                href={receiptUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ ...rowValue, color: 'var(--color-pink)', textDecoration: 'underline' }}
+              >
+                영수증 보기 &rarr;
+              </a>
+            </div>
+          )}
         </div>
 
-        {/* 카카오톡 안내 */}
+        {/* 안내 문구 — 결제 수단별 */}
         <div style={{
           width: '100%', background: '#FFF8E1', borderRadius: 12,
           padding: '14px 18px', fontSize: '0.875rem', color: '#5D4037',
           lineHeight: 1.6, textAlign: 'center',
         }}>
-          &#128172; 입금 완료되면 카카오톡으로 알림 드려요
+          {paymentMethod === 'bank'
+            ? <>&#128172; 입금 완료되면 카카오톡으로 알림 드려요</>
+            : <>&#128230; 주문이 접수됐어요. 배송 상태는 카카오톡으로 안내해드릴게요</>}
         </div>
 
         {/* 버튼 */}

@@ -9,11 +9,20 @@ export default function ShopTabBar() {
   const { session } = useLiveSession();
   const { totalCount } = useCart();
 
+  const isLive = !!session?.isActive;
+  // 라이브 위주 플랫폼 — 첫 탭은 항상 라이브몰
+  // 라이브 ON: 'LIVE' + 펄스 인디케이터, 라이브 OFF: '라이브'
   const tabs = [
-    { path: `/shop/${sellerSlug}`, label: '쇼핑몰', icon: '🛍️' },
-    { path: `/shop/${sellerSlug}/live`, label: '라이브몰', icon: '🔴', liveIndicator: !!session?.isActive },
+    {
+      path: `/shop/${sellerSlug}/live`,
+      label: isLive ? 'LIVE' : '라이브',
+      icon: '🔴',
+      liveIndicator: isLive,
+      emphasize: isLive,
+    },
     { path: `/shop/${sellerSlug}/cart`, label: '장바구니', icon: '🛒', badge: totalCount },
     { path: `/shop/${sellerSlug}/orders`, label: '주문내역', icon: '📦' },
+    { path: `/shop/${sellerSlug}/all`, label: '쇼핑몰', icon: '🛍️' },
     { path: `/shop/${sellerSlug}/my`, label: '마이', icon: '👤' },
   ];
 
@@ -41,12 +50,12 @@ export default function ShopTabBar() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 2,
-              background: 'none',
+              background: tab.emphasize && !isActive ? 'rgba(255,75,110,0.06)' : 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? 'var(--color-pink)' : 'var(--color-gray-500)',
+              color: isActive ? 'var(--color-pink)' : (tab.emphasize ? 'var(--color-pink)' : 'var(--color-gray-500)'),
               fontSize: '0.5625rem',
-              fontWeight: isActive ? 700 : 400,
+              fontWeight: isActive || tab.emphasize ? 700 : 400,
               minHeight: 44,
               position: 'relative',
               whiteSpace: 'nowrap',

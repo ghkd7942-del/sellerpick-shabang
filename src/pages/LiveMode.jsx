@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useProducts from '../hooks/useProducts';
 import useOrders from '../hooks/useOrders';
@@ -9,6 +9,8 @@ import LiveProductCard from '../components/LiveProductCard';
 import OrderToast from '../components/OrderToast';
 import QuickAdd from '../components/QuickAdd';
 import FAB from '../components/FAB';
+import BottomSheet from '../components/BottomSheet';
+import EditShopProduct from '../components/EditShopProduct';
 import '../styles/admin.css';
 
 function formatElapsed(startedAt) {
@@ -31,6 +33,9 @@ export default function LiveMode() {
   const [youtubeInput, setYoutubeInput] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starting, setStarting] = useState(false);
+  const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [working, setWorking] = useState(false);
 
   // 상품이 로드되면 라이브 상품은 기본 선택
   useEffect(() => {
@@ -90,6 +95,62 @@ export default function LiveMode() {
       return t >= start;
     }).length;
   }, [orders, session]);
+
+  // 라이브 중 next/prev — productOrder 대신 현재 isLive=true 상품 전체로 동작
+  // (방송 중 새로 등록한 상품도 자동 포함)
+  const liveIds = useMemo(() => liveProducts.map((p) => p.id), [liveProducts]);
+
+  const goNext = useCallback(async () => {
+    if (liveIds.length === 0) return;
+    const idx = liveIds.indexOf(session?.currentProductId);
+    const nextId = liveIds[(idx + 1 + liveIds.length) % liveIds.length];
+    if (nextId && nextId !== session?.currentProductId) {
+      await setCurrentProduct(nextId);
+    }
+  }, [liveIds, session?.currentProductId, setCurrentProduct]);
+
+  const goPrev = useCallback(async () => {
+    if (liveIds.length === 0) return;
+    const idx = liveIds.indexOf(session?.currentProductId);
+    const prevId = liveIds[(idx - 1 + liveIds.length) % liveIds.length];
+    if (prevId && prevId !== session?.currentProductId) {
+      await setCurrentProduct(prevId);
+    }
+  }, [liveIds, session?.currentProductId, setCurrentProduct]);
+
+  // 현재 상품 빠른 액션
+  const handleQuickStockToggle = async () => {
+    if (!currentProduct) return;
+    setWorking(true);
+    try {
+      const willSoldOut = (currentProduct.stock ?? 0) > 0;
+      await updateDocument('products', currentProduct.id, {
+        stock: willSoldOut ? 0 : 99,
+      });
+      setActionSheetOpen(false);
+    } catch (err) {
+      alert('처리 실패: ' + err.message);
+    }
+    setWorking(false);
+  };
+
+  const handleRemoveFromLive = async () => {
+    if (!currentProduct) return;
+    if (!confirm(`"${currentProduct.name}" 을 라이브에서 빼고 쇼핑몰로 이동할까요?`)) return;
+    setWorking(true);
+    try {
+      await updateDocument('products', currentProduct.id, { isLive: false });
+      // 다음 상품으로 자동 전환 (있으면)
+      const remaining = liveIds.filter((id) => id !== currentProduct.id);
+      if (remaining.length > 0) {
+        await setCurrentProduct(remaining[0]);
+      }
+      setActionSheetOpen(false);
+    } catch (err) {
+      alert('처리 실패: ' + err.message);
+    }
+    setWorking(false);
+  };
 
   if (loading) {
     return (
@@ -306,7 +367,7 @@ export default function LiveMode() {
 
         <FAB onClick={() => setQuickAddOpen(true)} />
         {quickAddOpen && (
-          <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+          <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} defaultIsLive={true} />
         )}
       </div>
     );
@@ -324,14 +385,29 @@ export default function LiveMode() {
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 56, background: 'rgba(0,0,0,0.8)',
+        padding: '0 8px 0 4px', height: 56, background: 'rgba(0,0,0,0.8)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="live-dot" style={{ background: '#FF4B6E' }} />
-          <span style={{ color: 'white', fontWeight: 700, fontSize: '0.9375rem' }}>LIVE</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8125rem' }}>{elapsed}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* 홈으로 (방송은 백그라운드 유지) */}
+          <button
+            onClick={() => navigate('/admin')}
+            aria-label="홈으로"
+            title="방송 유지하고 홈으로"
+            style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', color: 'white',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.125rem',
+            }}
+          >
+            ←
+          </button>
+          <span className="live-dot" style={{ background: '#FF4B6E', marginLeft: 6 }} />
+          <span style={{ color: 'white', fontWeight: 700, fontSize: '0.9375rem', marginLeft: 4 }}>LIVE</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8125rem', marginLeft: 4 }}>{elapsed}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{
             background: 'var(--color-pink)', color: 'white',
             padding: '4px 10px', borderRadius: 9999,
@@ -352,13 +428,18 @@ export default function LiveMode() {
         </div>
       </header>
 
-      {/* 현재 상품 히어로 */}
+      {/* 현재 상품 히어로 — 탭하면 빠른 액션 시트 */}
       {currentProduct && (
         <div style={{ padding: '20px 16px' }}>
-          <div style={{
-            borderRadius: 16, overflow: 'hidden',
-            background: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-          }}>
+          <button
+            onClick={() => setActionSheetOpen(true)}
+            style={{
+              borderRadius: 16, overflow: 'hidden',
+              background: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              padding: 0, border: 'none', cursor: 'pointer',
+              width: '100%', textAlign: 'left',
+            }}
+          >
             <div style={{
               height: 280,
               background: currentProduct.imageUrl
@@ -375,7 +456,17 @@ export default function LiveMode() {
                 <span className="live-dot" />
                 지금 판매중
               </div>
-              {orderCountMap[currentProduct.id] > 0 && (
+              {!currentProduct.unlimitedStock && (currentProduct.stock ?? 0) === 0 && (
+                <div style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: '#7F1D1D', color: 'white',
+                  padding: '6px 12px', borderRadius: 8,
+                  fontSize: '0.8125rem', fontWeight: 700,
+                }}>
+                  품절
+                </div>
+              )}
+              {orderCountMap[currentProduct.id] > 0 && (currentProduct.unlimitedStock || (currentProduct.stock ?? 0) > 0) && (
                 <div style={{
                   position: 'absolute', top: 12, right: 12,
                   background: 'rgba(0,0,0,0.7)', color: 'white',
@@ -385,14 +476,28 @@ export default function LiveMode() {
                   &#128717; {orderCountMap[currentProduct.id]}건
                 </div>
               )}
+              {/* 탭 hint */}
+              <div style={{
+                position: 'absolute', bottom: 12, right: 12,
+                background: 'rgba(0,0,0,0.6)', color: 'white',
+                padding: '4px 10px', borderRadius: 9999,
+                fontSize: '0.6875rem', fontWeight: 600,
+              }}>
+                탭하여 관리 ✨
+              </div>
             </div>
             <div style={{ padding: '16px 18px' }}>
               <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{currentProduct.name}</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-pink)', marginTop: 4 }}>
-                {currentProduct.price?.toLocaleString('ko-KR')}원
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-pink)' }}>
+                  {currentProduct.price?.toLocaleString('ko-KR')}원
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
+                  재고 {currentProduct.unlimitedStock ? '한정 없음' : (currentProduct.stock ?? 0)}
+                </div>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       )}
 
@@ -409,7 +514,15 @@ export default function LiveMode() {
             product={p}
             isCurrent={p.id === session.currentProductId}
             orderCount={orderCountMap[p.id] || 0}
-            onSelect={setCurrentProduct}
+            onSelect={(id) => {
+              // 이미 현재 상품이면 → 액션 시트(수정/매진/빼기)
+              // 다른 상품이면 → 그 상품을 현재로 전환
+              if (id === session?.currentProductId) {
+                setActionSheetOpen(true);
+              } else {
+                setCurrentProduct(id);
+              }
+            }}
           />
         ))}
       </div>
@@ -420,22 +533,28 @@ export default function LiveMode() {
         paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
       }}>
         <button
-          onClick={prevProduct}
+          onClick={goPrev}
+          disabled={liveIds.length <= 1}
           style={{
             flex: 1, padding: '16px', borderRadius: 12,
             background: 'rgba(255,255,255,0.1)', color: 'white',
             fontSize: '1rem', fontWeight: 700, minHeight: 56,
+            opacity: liveIds.length <= 1 ? 0.4 : 1,
+            cursor: liveIds.length <= 1 ? 'not-allowed' : 'pointer',
           }}
         >
           &#9664; 이전
         </button>
         <button
-          onClick={nextProduct}
+          onClick={goNext}
+          disabled={liveIds.length <= 1}
           style={{
             flex: 1, padding: '16px', borderRadius: 12,
             background: 'var(--color-pink)', color: 'white',
             fontSize: '1rem', fontWeight: 700, minHeight: 56,
             boxShadow: '0 4px 12px rgba(255,75,110,0.4)',
+            opacity: liveIds.length <= 1 ? 0.5 : 1,
+            cursor: liveIds.length <= 1 ? 'not-allowed' : 'pointer',
           }}
         >
           다음 &#9654;
@@ -445,8 +564,101 @@ export default function LiveMode() {
       {/* QuickAdd FAB */}
       <FAB onClick={() => setQuickAddOpen(true)} />
       {quickAddOpen && (
-        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} defaultIsLive={true} />
       )}
+
+      {/* 현재 상품 빠른 액션 시트 */}
+      <BottomSheet
+        isOpen={actionSheetOpen}
+        onClose={() => setActionSheetOpen(false)}
+        title={currentProduct?.name || '상품 관리'}
+      >
+        {currentProduct && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 16 }}>
+            <div style={{
+              padding: '10px 12px', background: 'var(--color-gray-50)',
+              borderRadius: 10, fontSize: '0.8125rem', color: 'var(--color-gray-700)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>가격</span>
+                <strong>{currentProduct.price?.toLocaleString('ko-KR')}원</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                <span>재고</span>
+                {currentProduct.unlimitedStock ? (
+                  <strong style={{ color: 'var(--color-gray-700)' }}>한정 없음</strong>
+                ) : (
+                  <strong style={{
+                    color: (currentProduct.stock ?? 0) === 0 ? '#991B1B' : 'var(--color-gray-700)',
+                  }}>
+                    {currentProduct.stock ?? 0}개
+                  </strong>
+                )}
+              </div>
+            </div>
+
+            {/* 매진 / 매진 해제 (무제한 상품엔 의미 없으니 숨김) */}
+            {!currentProduct.unlimitedStock && (
+              <button
+                onClick={handleQuickStockToggle}
+                disabled={working}
+                style={liveActionBtn(
+                  (currentProduct.stock ?? 0) > 0 ? '#FEE2E2' : '#D1FAE5',
+                  (currentProduct.stock ?? 0) > 0 ? '#991B1B' : '#065F46',
+                )}
+              >
+                <span style={{ fontSize: '1.25rem' }}>{(currentProduct.stock ?? 0) > 0 ? '🚫' : '✅'}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  {(currentProduct.stock ?? 0) > 0 ? '품절 처리' : '품절 해제 (재고 99로)'}
+                </span>
+              </button>
+            )}
+
+            {/* 상품 수정 (정식 폼) */}
+            <button
+              onClick={() => { setActionSheetOpen(false); setEditProduct(currentProduct); }}
+              disabled={working}
+              style={liveActionBtn('white', 'var(--color-gray-900)', true)}
+            >
+              <span style={{ fontSize: '1.25rem' }}>📝</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>상품 수정 (이름·가격·재고·옵션)</span>
+              <span style={{ color: 'var(--color-gray-400)' }}>›</span>
+            </button>
+
+            {/* 라이브에서 빼기 */}
+            <button
+              onClick={handleRemoveFromLive}
+              disabled={working}
+              style={liveActionBtn('white', '#92400E', true)}
+            >
+              <span style={{ fontSize: '1.25rem' }}>🛍</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>라이브에서 빼고 쇼핑몰로</span>
+              <span style={{ color: 'var(--color-gray-400)' }}>›</span>
+            </button>
+
+            <button
+              onClick={() => setActionSheetOpen(false)}
+              style={{
+                width: '100%', padding: 10, fontSize: '0.8125rem',
+                color: 'var(--color-gray-500)', background: 'none', border: 'none', cursor: 'pointer',
+              }}
+            >
+              닫기
+            </button>
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* 정식 수정 시트 */}
+      <BottomSheet
+        isOpen={!!editProduct}
+        onClose={() => setEditProduct(null)}
+        title="상품 수정"
+      >
+        {editProduct && (
+          <EditShopProduct product={editProduct} onClose={() => setEditProduct(null)} />
+        )}
+      </BottomSheet>
     </div>
   );
 }
@@ -458,3 +670,14 @@ const pickBtnStyle = {
   background: 'white', color: 'var(--color-gray-700)',
   cursor: 'pointer', minHeight: 28,
 };
+
+function liveActionBtn(bg, color, withBorder = false) {
+  return {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+    padding: '14px 14px', minHeight: 56,
+    borderRadius: 12,
+    border: withBorder ? '1px solid var(--color-gray-200)' : 'none',
+    background: bg, color, fontSize: '0.9375rem', fontWeight: 600,
+    cursor: 'pointer',
+  };
+}

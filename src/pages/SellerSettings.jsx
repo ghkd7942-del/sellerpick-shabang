@@ -15,6 +15,9 @@ const labelStyle = {
 };
 
 const DEFAULT_SETTINGS = {
+  slug: 'shabang',
+  name: '샤방이',
+  kakaoChannel: '_DZmCX',
   shopName: '샤방이',
   description: '',
   profileImage: '',

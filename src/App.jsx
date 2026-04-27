@@ -24,6 +24,8 @@ import Legal from './pages/Legal';
 import KakaoCallback from './pages/KakaoCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Onboarding from './pages/Onboarding';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFail from './pages/PaymentFail';
 
 function App() {
   return (
@@ -49,13 +51,21 @@ function App() {
           <Route path="/legal/:slug" element={<Legal />} />
 
           {/* 고객 — 로그인 불필요 */}
-          <Route path="/shop/:sellerSlug" element={<ShopHome />} />
+          {/* 라이브 위주 플랫폼 — 모든 메인 진입점이 LiveMall.
+              쇼핑몰(전체 상품)은 부수 페이지로 /all 경로에 보존 */}
+          <Route path="/s/:sellerSlug" element={<LiveMall />} />
+          <Route path="/s/:sellerSlug/live" element={<LiveMall />} />
+          <Route path="/s/:sellerSlug/all" element={<ShopHome />} />
+          <Route path="/shop/:sellerSlug" element={<LiveMall />} />
           <Route path="/shop/:sellerSlug/live" element={<LiveMall />} />
+          <Route path="/shop/:sellerSlug/all" element={<ShopHome />} />
           <Route path="/shop/:sellerSlug/product/:productId" element={<ProductDetail />} />
           <Route path="/shop/:sellerSlug/cart" element={<Cart />} />
           <Route path="/shop/:sellerSlug/order/:productId" element={<OrderForm />} />
           <Route path="/shop/:sellerSlug/checkout/:productId" element={<Checkout />} />
           <Route path="/shop/:sellerSlug/order-complete" element={<OrderComplete />} />
+          <Route path="/shop/:sellerSlug/payment/success" element={<PaymentSuccess />} />
+          <Route path="/shop/:sellerSlug/payment/fail" element={<PaymentFail />} />
           <Route path="/shop/:sellerSlug/orders" element={<OrderTrack />} />
           <Route path="/shop/:sellerSlug/login" element={<CustomerLogin />} />
           <Route path="/shop/:sellerSlug/onboarding" element={<Onboarding />} />

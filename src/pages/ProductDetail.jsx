@@ -40,7 +40,8 @@ export default function ProductDetail() {
   }, [variants, colors, selectedVariant, selectedColor]);
 
   const currentVariant = variants.find((v) => v.name === selectedVariant);
-  const currentPrice = currentVariant?.price ?? product?.price ?? 0;
+  // variant.price 가 0/undefined 면 상품 가격으로 fallback (옛 데이터 호환)
+  const currentPrice = (currentVariant?.price > 0 ? currentVariant.price : product?.price) || 0;
 
   // 현재 (색상, 사이즈) 조합의 재고
   const cellStock = useMemo(() => {
@@ -278,7 +279,7 @@ export default function ProductDetail() {
                       fontSize: '0.9375rem', fontWeight: 700,
                       color: vSoldOut ? 'var(--color-gray-400)' : 'var(--color-pink)',
                     }}>
-                      {v.price?.toLocaleString('ko-KR')}원
+                      {((v.price > 0 ? v.price : product?.price) || 0).toLocaleString('ko-KR')}원
                     </span>
                   </button>
                 );

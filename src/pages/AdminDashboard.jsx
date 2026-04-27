@@ -5,11 +5,14 @@ import useProducts from '../hooks/useProducts';
 import useStats from '../hooks/useStats';
 import { seedSampleData } from '../lib/seedData';
 import AdminHeader from '../components/AdminHeader';
+import LiveControlBar from '../components/LiveControlBar';
 import StatCards from '../components/StatCards';
 import RecentOrders from '../components/RecentOrders';
 import ProductList from '../components/ProductList';
 import FAB from '../components/FAB';
 import QuickAdd from '../components/QuickAdd';
+import ShopProductForm from '../components/ShopProductForm';
+import BottomSheet from '../components/BottomSheet';
 import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
 
@@ -20,6 +23,8 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [seeding, setSeeding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [shopFormOpen, setShopFormOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const handleSeed = async () => {
     setSeeding(true);
@@ -36,6 +41,7 @@ export default function AdminDashboard() {
     <div className="admin-container">
       <AdminHeader />
       <div className="admin-content">
+        <LiveControlBar />
         <StatCards
           todayOrderCount={todayOrderCount}
           paidCount={paidCount}
@@ -142,14 +148,95 @@ export default function AdminDashboard() {
           </button>
         )}
       </div>
-      <FAB onClick={() => setQuickAddOpen(true)} />
+      <FAB onClick={() => setPickerOpen(true)} />
+
+      {/* 등록 방식 선택 시트 */}
+      <BottomSheet
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title="상품 등록"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-gray-500)', textAlign: 'center', marginBottom: 4 }}>
+            어떤 방식으로 등록할까요?
+          </div>
+
+          {/* 라이브 빠른 등록 */}
+          <button
+            onClick={() => { setPickerOpen(false); setQuickAddOpen(true); }}
+            style={pickerCardPrimary}
+          >
+            <div style={pickerIcon('rgba(255,255,255,0.2)')}>🔴</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 700 }}>라이브 빠른 등록</div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.85, marginTop: 2 }}>
+                사진 + 이름/가격만 빠르게 (라이브몰)
+              </div>
+            </div>
+            <span style={{ fontSize: '1.25rem', opacity: 0.7 }}>›</span>
+          </button>
+
+          {/* 쇼핑몰 정식 등록 */}
+          <button
+            onClick={() => { setPickerOpen(false); setShopFormOpen(true); }}
+            style={pickerCardSecondary}
+          >
+            <div style={pickerIcon('var(--color-gray-100)', 'var(--color-gray-700)')}>🛍</div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-gray-900)' }}>
+                쇼핑몰 정식 등록
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginTop: 2 }}>
+                옵션 · 상세이미지 · 상품정보 (쇼핑몰)
+              </div>
+            </div>
+            <span style={{ fontSize: '1.25rem', color: 'var(--color-gray-400)' }}>›</span>
+          </button>
+        </div>
+      </BottomSheet>
+
       {quickAddOpen && (
         <QuickAdd
           onClose={() => setQuickAddOpen(false)}
-          onSuccess={() => {}}
+          onSuccess={() => { setQuickAddOpen(false); refetchProducts(); }}
+          defaultIsLive={true}
         />
       )}
+      {shopFormOpen && (
+        <ShopProductForm
+          onClose={() => setShopFormOpen(false)}
+          onSuccess={() => { setShopFormOpen(false); refetchProducts(); }}
+        />
+      )}
+
       <BottomTabBar />
     </div>
   );
+}
+
+const pickerCardPrimary = {
+  display: 'flex', alignItems: 'center', gap: 12,
+  padding: '16px 16px', minHeight: 72,
+  borderRadius: 12, border: 'none',
+  background: 'var(--color-pink)', color: 'white',
+  cursor: 'pointer', width: '100%',
+  boxShadow: '0 4px 12px rgba(255,75,110,0.25)',
+};
+
+const pickerCardSecondary = {
+  display: 'flex', alignItems: 'center', gap: 12,
+  padding: '16px 16px', minHeight: 72,
+  borderRadius: 12,
+  border: '1px solid var(--color-gray-200)',
+  background: 'white',
+  cursor: 'pointer', width: '100%',
+};
+
+function pickerIcon(bg, color = 'white') {
+  return {
+    width: 44, height: 44, borderRadius: 12,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: bg, color, fontSize: '1.375rem',
+    flexShrink: 0,
+  };
 }

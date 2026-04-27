@@ -5,7 +5,7 @@ import useProducts from '../hooks/useProducts';
 import useOrders from '../hooks/useOrders';
 import BottomSheet from '../components/BottomSheet';
 import ProductForm from '../components/ProductForm';
-import QuickAdd from '../components/QuickAdd';
+import ShopProductForm from '../components/ShopProductForm';
 import ProductDetailView from '../components/ProductDetailView';
 import EditShopProduct from '../components/EditShopProduct';
 import ViewSwitcher from '../components/ViewSwitcher';
@@ -14,11 +14,17 @@ import BottomTabBar from '../components/BottomTabBar';
 import '../styles/admin.css';
 
 const CATEGORIES = ['전체', '의류', '잡화', '뷰티', '식품·건강', '침구·생활', '기타'];
+// 카테고리 외 '특수 필터' — 저재고/품절/숨김
+const SPECIAL_FILTERS = [
+  { key: 'lowStock', label: '저재고', emoji: '⚠️' },
+  { key: 'soldOut', label: '품절', emoji: '🚫' },
+  { key: 'hidden', label: '숨김', emoji: '👻' },
+];
 const LOW_STOCK_THRESHOLD = 10;
 
 export default function ProductManagement() {
   const navigate = useNavigate();
-  const { products, loading } = useProducts();
+  const { products, loading, refetch } = useProducts();
   const { orders } = useOrders(200);
   const [filter, setFilter] = useState('전체');
   const [search, setSearch] = useState('');
@@ -26,7 +32,9 @@ export default function ProductManagement() {
   const [editProduct, setEditProduct] = useState(null);
   const [cloneProduct, setCloneProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [shopFormOpen, setShopFormOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
 
   const todayOrderCount = useMemo(() => {
     const today = new Date();
@@ -38,11 +46,22 @@ export default function ProductManagement() {
   }, [orders]);
 
   const filtered = useMemo(() => {
-    const byCategory = filter === '전체'
-      ? products
-      : products.filter((p) => p.category === filter);
+    let base;
+    // 특수 필터: 저재고/품절/숨김
+    if (filter === 'lowStock') {
+      base = products.filter((p) => !p.hidden && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
+    } else if (filter === 'soldOut') {
+      base = products.filter((p) => !p.hidden && (p.stock ?? 0) === 0);
+    } else if (filter === 'hidden') {
+      base = products.filter((p) => p.hidden === true);
+    } else if (filter === '전체') {
+      // '전체'는 숨김 제외 (관리 포커스가 활성 상품)
+      base = products.filter((p) => !p.hidden);
+    } else {
+      base = products.filter((p) => p.category === filter && !p.hidden);
+    }
     const q = search.trim().toLowerCase();
-    const bySearch = !q ? byCategory : byCategory.filter((p) =>
+    const bySearch = !q ? base : base.filter((p) =>
       (p.name || '').toLowerCase().includes(q) ||
       (p.description || '').toLowerCase().includes(q) ||
       (p.tags || []).some((t) => String(t).toLowerCase().includes(q))
@@ -75,15 +94,76 @@ export default function ProductManagement() {
 
   const toggleLive = async (product) => {
     await updateDocument('products', product.id, { isLive: !product.isLive });
+    refetch();
   };
 
   const handleDelete = async (product) => {
     if (!confirm(`"${product.name}" 상품을 삭제할까요?`)) return;
     await deleteDocument('products', product.id);
+    refetch();
   };
 
-  const liveCount = products.filter((p) => p.isLive).length;
-  const soldOutCount = products.filter((p) => (p.stock || 0) === 0).length;
+  // 벌크 선택 헬퍼
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+  const selectAllVisible = () => setSelectedIds(new Set(filtered.map((p) => p.id)));
+  const selectedProducts = filtered.filter((p) => selectedIds.has(p.id));
+
+  // 벌크 액션
+  const applyBulk = async (kind) => {
+    if (selectedProducts.length === 0) return;
+
+    if (kind === 'delete') {
+      if (!confirm(`선택한 ${selectedProducts.length}개 상품을 삭제할까요? 되돌릴 수 없어요.`)) return;
+    }
+
+    setBulkWorking(true);
+    let success = 0;
+    try {
+      for (const p of selectedProducts) {
+        try {
+          if (kind === 'liveOn') {
+            await updateDocument('products', p.id, { isLive: true });
+          } else if (kind === 'liveOff') {
+            await updateDocument('products', p.id, { isLive: false });
+          } else if (kind === 'hide') {
+            await updateDocument('products', p.id, { hidden: true });
+          } else if (kind === 'unhide') {
+            await updateDocument('products', p.id, { hidden: false });
+          } else if (kind === 'delete') {
+            await deleteDocument('products', p.id);
+          }
+          success++;
+        } catch (e) {
+          console.warn('bulk fail', p.id, e);
+        }
+      }
+    } finally {
+      setBulkWorking(false);
+    }
+    clearSelection();
+    refetch();
+    alert(`처리 완료: ${success}/${selectedProducts.length}건`);
+  };
+
+  // 숨김 상품은 별도 카운트 — "전체"에서 제외되므로 뱃지로 따로 표시
+  const hiddenCount = products.filter((p) => p.hidden === true).length;
+  const activeProducts = products.filter((p) => !p.hidden);
+  const liveCount = activeProducts.filter((p) => p.isLive).length;
+  // 무제한 상품은 품절/저재고 집계에서 제외
+  const soldOutCount = activeProducts.filter(
+    (p) => !p.unlimitedStock && (p.stock || 0) === 0,
+  ).length;
+  const lowStockCount = activeProducts.filter(
+    (p) => !p.unlimitedStock && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD,
+  ).length;
   const pendingOrderCount = orders.filter(
     (o) => o.status === 'new' || o.status === 'paid'
   ).length;
@@ -108,18 +188,32 @@ export default function ProductManagement() {
 
       {/* 요약 카드 */}
       <div style={{
-        display: 'flex', gap: 10, padding: '12px 16px 0',
+        display: 'flex', gap: 8, padding: '12px 16px 0',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
       }}>
         <div style={miniCard}>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>전체 상품</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{products.length}</div>
+          <div style={miniLabel}>전체 상품</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{activeProducts.length}</div>
         </div>
         <div style={miniCard}>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>라이브 중</div>
+          <div style={miniLabel}>라이브</div>
           <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-pink)' }}>{liveCount}</div>
         </div>
-        <div style={miniCard}>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>품절</div>
+        <div
+          style={{ ...miniCard, cursor: lowStockCount > 0 ? 'pointer' : 'default' }}
+          onClick={() => lowStockCount > 0 && setFilter('lowStock')}
+        >
+          <div style={miniLabel}>저재고</div>
+          <div style={{
+            fontSize: '1.25rem', fontWeight: 700,
+            color: lowStockCount > 0 ? '#D97706' : 'var(--color-gray-400)',
+          }}>{lowStockCount}</div>
+        </div>
+        <div
+          style={{ ...miniCard, cursor: soldOutCount > 0 ? 'pointer' : 'default' }}
+          onClick={() => soldOutCount > 0 && setFilter('soldOut')}
+        >
+          <div style={miniLabel}>품절</div>
           <div style={{
             fontSize: '1.25rem', fontWeight: 700,
             color: soldOutCount > 0 ? 'var(--color-pink)' : 'var(--color-gray-400)',
@@ -129,13 +223,35 @@ export default function ProductManagement() {
           style={{ ...miniCard, cursor: 'pointer' }}
           onClick={() => navigate('/admin/orders')}
         >
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-gray-500)' }}>대기 주문</div>
+          <div style={miniLabel}>대기 주문</div>
           <div style={{
             fontSize: '1.25rem', fontWeight: 700,
             color: pendingOrderCount > 0 ? 'var(--color-teal)' : 'var(--color-gray-400)',
           }}>{pendingOrderCount}</div>
         </div>
       </div>
+
+      {/* 저재고 경고 배너 — 있을 때만 */}
+      {lowStockCount > 0 && filter !== 'lowStock' && (
+        <div style={{ padding: '10px 16px 0' }}>
+          <button
+            onClick={() => setFilter('lowStock')}
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: 10,
+              background: '#FFFBEB', border: '1px solid #FDE68A',
+              color: '#92400E', display: 'flex', alignItems: 'center', gap: 10,
+              minHeight: 44, cursor: 'pointer', textAlign: 'left',
+              fontSize: '0.8125rem', fontWeight: 600,
+            }}
+          >
+            <span style={{ fontSize: '1.125rem' }}>⚠️</span>
+            <span style={{ flex: 1 }}>
+              재고 {LOW_STOCK_THRESHOLD}개 이하 상품 {lowStockCount}개가 있어요
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#D97706' }}>보기 →</span>
+          </button>
+        </div>
+      )}
 
       {/* 오늘 주문 프린팅 배너 */}
       <div style={{ padding: '12px 16px 0' }}>
@@ -252,17 +368,58 @@ export default function ProductManagement() {
             {cat}
             {cat !== '전체' && (
               <span style={{ marginLeft: 4, fontSize: '0.6875rem' }}>
-                {products.filter((p) => p.category === cat).length}
+                {activeProducts.filter((p) => p.category === cat).length}
               </span>
             )}
           </button>
         ))}
+        <div style={{ width: 1, background: 'var(--color-gray-200)', margin: '8px 6px', flexShrink: 0 }} />
+        {SPECIAL_FILTERS.map((s) => {
+          const count = s.key === 'lowStock' ? lowStockCount
+            : s.key === 'soldOut' ? soldOutCount
+              : hiddenCount;
+          return (
+            <button
+              key={s.key}
+              onClick={() => setFilter(s.key)}
+              style={{
+                flex: '0 0 auto', padding: '8px 12px',
+                fontSize: '0.8125rem', fontWeight: filter === s.key ? 700 : 400,
+                color: filter === s.key ? 'var(--color-pink)' : 'var(--color-gray-500)',
+                borderBottom: filter === s.key ? '2px solid var(--color-pink)' : '2px solid transparent',
+                background: 'none', cursor: 'pointer', minHeight: 40, whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ marginRight: 4 }}>{s.emoji}</span>
+              {s.label}
+              <span style={{ marginLeft: 4, fontSize: '0.6875rem' }}>{count}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* 선택 제어 바 */}
+      {filtered.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 16px 0', fontSize: '0.75rem', color: 'var(--color-gray-500)',
+        }}>
+          <button
+            onClick={selectedIds.size > 0 ? clearSelection : selectAllVisible}
+            style={{ background: 'none', border: 'none', color: 'var(--color-gray-700)', cursor: 'pointer', fontWeight: 600 }}
+          >
+            {selectedIds.size > 0 ? '선택 해제' : '전체 선택'}
+          </button>
+          <span>{filtered.length}개</span>
+        </div>
+      )}
 
       {/* 상품 목록 */}
       <div style={{
         padding: '12px 16px',
-        paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: selectedIds.size > 0
+          ? 'calc(140px + env(safe-area-inset-bottom, 0px))'
+          : 'calc(76px + env(safe-area-inset-bottom, 0px))',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
         {loading ? (
@@ -282,19 +439,41 @@ export default function ProductManagement() {
             </div>
           </div>
         ) : (
-          filtered.map((product) => (
+          filtered.map((product) => {
+            const selected = selectedIds.has(product.id);
+            const isHidden = product.hidden === true;
+            return (
             <div
               key={product.id}
               style={{
                 background: 'white', borderRadius: 12, padding: '12px 14px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                opacity: product.isLive ? 1 : 0.6,
+                opacity: product.isLive || isHidden ? 1 : 0.6,
+                border: selected ? '1.5px solid var(--color-pink)' : '1.5px solid transparent',
+                filter: isHidden ? 'grayscale(0.3)' : 'none',
               }}
             >
+              {/* 체크박스 + 썸네일 + 정보 */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <button
+                  onClick={() => toggleSelect(product.id)}
+                  aria-label={selected ? '선택 해제' : '선택'}
+                  style={{
+                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                    marginTop: 4,
+                    border: '2px solid',
+                    borderColor: selected ? 'var(--color-pink)' : 'var(--color-gray-300)',
+                    background: selected ? 'var(--color-pink)' : 'white',
+                    color: 'white', fontSize: 12, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {selected ? '✓' : ''}
+                </button>
               <button
                 onClick={() => setDetailProduct(product)}
                 style={{
-                  display: 'flex', gap: 12, width: '100%',
+                  display: 'flex', gap: 12, flex: 1, minWidth: 0,
                   padding: 0, background: 'none', border: 'none',
                   cursor: 'pointer', textAlign: 'left',
                 }}
@@ -356,21 +535,34 @@ export default function ProductManagement() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: '0.75rem', color: 'var(--color-gray-500)' }}>
                     {product.category && <span>{product.category}</span>}
-                    <span>
-                      총 재고 <strong style={{
-                        color: (product.stock ?? 0) === 0
-                          ? '#991B1B'
-                          : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD
-                            ? '#92400E'
-                            : 'var(--color-gray-700)',
-                      }}>{product.stock ?? 0}</strong>
-                    </span>
+                    {product.unlimitedStock ? (
+                      <span>재고 <strong style={{ color: 'var(--color-gray-700)' }}>한정 없음</strong></span>
+                    ) : (
+                      <span>
+                        총 재고 <strong style={{
+                          color: (product.stock ?? 0) === 0
+                            ? '#991B1B'
+                            : (product.stock ?? 0) <= LOW_STOCK_THRESHOLD
+                              ? '#92400E'
+                              : 'var(--color-gray-700)',
+                        }}>{product.stock ?? 0}</strong>
+                      </span>
+                    )}
                     {Array.isArray(product.variants) && product.variants.length > 0 && (
                       <span>옵션 {product.variants.length}</span>
+                    )}
+                    {isHidden && (
+                      <span style={{
+                        background: 'var(--color-gray-200)', color: 'var(--color-gray-700)',
+                        padding: '1px 6px', borderRadius: 4, fontSize: '0.625rem', fontWeight: 700,
+                      }}>
+                        숨김
+                      </span>
                     )}
                   </div>
                 </div>
               </button>
+              </div>
 
               {/* 액션 버튼 */}
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -428,7 +620,8 @@ export default function ProductManagement() {
                 </button>
               </div>
             </div>
-          ))
+          );
+          })
         )}
       </div>
 
@@ -482,9 +675,47 @@ export default function ProductManagement() {
         )}
       </BottomSheet>
 
-      <FAB onClick={() => setQuickAddOpen(true)} />
-      {quickAddOpen && (
-        <QuickAdd onClose={() => setQuickAddOpen(false)} onSuccess={() => {}} />
+      {/* 벌크 액션바 */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', left: 0, right: 0,
+          bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+          maxWidth: 430, margin: '0 auto', zIndex: 60,
+          padding: '10px 12px', background: 'white',
+          borderTop: '1px solid var(--color-gray-200)',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+              {selectedIds.size}개 선택됨
+            </span>
+            <button
+              onClick={clearSelection}
+              style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              해제
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+            <button onClick={() => applyBulk('liveOn')} disabled={bulkWorking} style={bulkBtnStyle('#EC4899')}>🔴 라이브 ON</button>
+            <button onClick={() => applyBulk('liveOff')} disabled={bulkWorking} style={bulkBtnStyle('#64748B')}>🛍 쇼핑몰</button>
+            {filter === 'hidden' ? (
+              <button onClick={() => applyBulk('unhide')} disabled={bulkWorking} style={bulkBtnStyle('#10B981')}>👁 숨김 해제</button>
+            ) : (
+              <button onClick={() => applyBulk('hide')} disabled={bulkWorking} style={bulkBtnStyle('#94A3B8')}>👻 숨기기</button>
+            )}
+            <button onClick={() => applyBulk('delete')} disabled={bulkWorking} style={bulkBtnStyle('#EF4444')}>🗑 삭제</button>
+          </div>
+        </div>
+      )}
+
+      {/* 쇼핑몰 상품 등록 — 정식 폼 (옵션·상세이미지 포함) */}
+      <FAB onClick={() => setShopFormOpen(true)} />
+      {shopFormOpen && (
+        <ShopProductForm
+          onClose={() => setShopFormOpen(false)}
+          onSuccess={() => { setShopFormOpen(false); refetch(); }}
+        />
       )}
       <BottomTabBar />
     </div>
@@ -567,9 +798,23 @@ function EditForm({ product, onClose }) {
 }
 
 const miniCard = {
-  flex: 1, background: 'white', borderRadius: 10, padding: '10px 12px',
+  flex: '0 0 auto', minWidth: 72,
+  background: 'white', borderRadius: 10, padding: '10px 12px',
   boxShadow: '0 1px 3px rgba(0,0,0,0.06)', textAlign: 'center',
 };
+const miniLabel = {
+  fontSize: '0.6875rem', color: 'var(--color-gray-500)',
+  whiteSpace: 'nowrap',
+};
+function bulkBtnStyle(color) {
+  return {
+    flex: '1 0 auto', minHeight: 40, padding: '8px 10px',
+    borderRadius: 8, border: 'none',
+    fontSize: '0.75rem', fontWeight: 700,
+    background: color, color: 'white', cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
+}
 const labelStyle = {
   display: 'block', fontSize: '0.8125rem', fontWeight: 600,
   color: 'var(--color-gray-700)', marginBottom: 6,
