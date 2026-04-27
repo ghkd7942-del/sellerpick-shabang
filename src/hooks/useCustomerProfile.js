@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDocument, setDocument } from '../lib/firestoreAPI';
+import { getDocument, setDocument, updateDocument } from '../lib/firestoreAPI';
 import useAuth from './useAuth';
+
+function inferProvider(user) {
+  if (user.uid?.startsWith('kakao:')) return 'kakao';
+  const providerId = user.providerData?.[0]?.providerId || '';
+  if (providerId === 'google.com') return 'google';
+  return providerId || 'unknown';
+}
 
 export default function useCustomerProfile() {
   const { user } = useAuth();
@@ -17,14 +24,20 @@ export default function useCustomerProfile() {
     (async () => {
       const data = await getDocument('customers', user.uid);
       if (data) {
-        setProfile(data);
+        if (!data.provider) {
+          const provider = inferProvider(user);
+          await updateDocument('customers', user.uid, { provider });
+          setProfile({ ...data, provider });
+        } else {
+          setProfile(data);
+        }
       } else {
-        // 새 고객 — 기본 프로필 생성
         const newProfile = {
           name: user.displayName || '',
           phone: '',
           address: '',
           email: user.email || '',
+          provider: inferProvider(user),
           createdAt: new Date().toISOString(),
         };
         await setDocument('customers', user.uid, newProfile);

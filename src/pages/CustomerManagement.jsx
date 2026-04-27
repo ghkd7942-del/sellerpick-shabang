@@ -182,6 +182,19 @@ export default function CustomerManagement() {
                           color: 'var(--color-gray-500)', padding: '1px 5px', borderRadius: 4,
                         }}>비회원</span>
                       )}
+                      {!customer.isGuest && (customer.provider === 'kakao' || customer.id?.startsWith('kakao:')) && (
+                        <span style={{
+                          fontSize: '0.5625rem', background: '#FEE500',
+                          color: '#191919', padding: '1px 5px', borderRadius: 4, fontWeight: 700,
+                        }}>카카오</span>
+                      )}
+                      {!customer.isGuest && customer.provider !== 'kakao' && !customer.id?.startsWith('kakao:') && (
+                        <span style={{
+                          fontSize: '0.5625rem', background: 'white',
+                          color: 'var(--color-gray-700)', padding: '1px 5px', borderRadius: 4,
+                          border: '1px solid var(--color-gray-200)', fontWeight: 700,
+                        }}>구글</span>
+                      )}
                       {stats.orderCount >= 3 && (
                         <span style={{
                           fontSize: '0.5625rem', background: '#FEF3C7',
