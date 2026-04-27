@@ -10,12 +10,14 @@ import FAB from '../components/FAB';
 import BottomSheet from '../components/BottomSheet';
 import ShopProductForm from '../components/ShopProductForm';
 import ViewSwitcher from '../components/ViewSwitcher';
+import { isAdmin } from '../lib/admin';
 import '../styles/admin.css';
 
 export default function ShopHome() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const admin = isAdmin(user);
   const { products, loading } = useLiveProducts({ filter: 'shop' });
   const [addOpen, setAddOpen] = useState(false);
 
@@ -72,7 +74,7 @@ export default function ShopHome() {
         )}
       </div>
       <Footer />
-      {user && <FAB onClick={() => setAddOpen(true)} />}
+      {admin && <FAB onClick={() => setAddOpen(true)} />}
       <BottomSheet
         isOpen={addOpen}
         onClose={() => setAddOpen(false)}

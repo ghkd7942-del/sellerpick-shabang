@@ -11,12 +11,14 @@ import ProductCard from '../components/ProductCard';
 import FAB from '../components/FAB';
 import QuickAdd from '../components/QuickAdd';
 import ViewSwitcher from '../components/ViewSwitcher';
+import { isAdmin } from '../lib/admin';
 import '../styles/admin.css';
 
 export default function LiveMall() {
   const { sellerSlug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const admin = isAdmin(user);
   const { products, loading } = useLiveProducts({ filter: 'live' });
   const { session } = useLiveSession();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -120,7 +122,7 @@ export default function LiveMall() {
         )}
       </div>
       <Footer />
-      {user && <FAB onClick={() => setQuickAddOpen(true)} />}
+      {admin && <FAB onClick={() => setQuickAddOpen(true)} />}
       {quickAddOpen && (
         <QuickAdd
           defaultIsLive={true}
