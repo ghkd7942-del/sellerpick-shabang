@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getCollection } from '../lib/firestoreAPI';
 import useAuth from '../hooks/useAuth';
 import useCustomerProfile from '../hooks/useCustomerProfile';
 import ShopTabBar from '../components/ShopTabBar';
@@ -54,15 +53,19 @@ export default function OrderTrack() {
 
     const fetchOrders = async () => {
       try {
-        const allOrders = await getCollection('orders');
-        const filtered = allOrders
-          .filter((o) => o.phone === trimmed)
-          .sort((a, b) => {
-            const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-            const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-            return tb - ta;
-          });
-        setOrders(filtered);
+        const res = await fetch('/api/orders-by-phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: trimmed }),
+        });
+        const data = await res.json().catch(() => ({ orders: [] }));
+        const list = Array.isArray(data.orders) ? data.orders : [];
+        list.sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
+        setOrders(list);
         setLoading(false);
       } catch {
         setLoading(false);

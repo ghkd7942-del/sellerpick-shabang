@@ -1,8 +1,7 @@
 import { useState } from 'react';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 import { compressImage } from '../lib/imageCompress';
-
-// trim() - 환경변수에 공백/개행이 있을 수 있음
-const BUCKET = (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim();
 
 export default function useImageUpload() {
   const [imageUrl, setImageUrl] = useState('');
@@ -18,30 +17,15 @@ export default function useImageUpload() {
     setProgress(10);
 
     try {
-      // 압축 (핸드폰 사진 5MB → 200KB)
       const compressed = await compressImage(file, 1000, 0.8);
       setProgress(40);
 
-      const fileName = `products/${Date.now()}_${compressed.name}`;
-      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o?name=${encodeURIComponent(fileName)}`;
-
-      const res = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': compressed.type || 'image/jpeg' },
-        body: compressed,
-      });
-
-      if (!res.ok) {
-        throw new Error('업로드 실패: ' + res.status);
-      }
-
+      const path = `products/${Date.now()}_${compressed.name}`;
+      const ref = storageRef(storage, path);
+      await uploadBytes(ref, compressed, { contentType: compressed.type || 'image/jpeg' });
       setProgress(80);
 
-      const data = await res.json();
-      const objectName = encodeURIComponent(data.name);
-      const token = data.downloadTokens;
-      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${objectName}?alt=media&token=${token}`;
-
+      const downloadUrl = await getDownloadURL(ref);
       setImageUrl(downloadUrl);
       setProgress(100);
       setUploading(false);

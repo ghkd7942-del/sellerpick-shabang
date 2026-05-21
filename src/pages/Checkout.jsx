@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
-import { addDocument, getDocument, updateDocument } from '../lib/firestoreAPI';
 import { notifyOrderReceived } from '../lib/alimtalk';
 import Footer from '../components/Footer';
 import '../styles/admin.css';
@@ -78,36 +77,36 @@ export default function Checkout() {
     );
   }
 
-  // 공용: 주문 문서 생성 (status=pending_payment)
+  // 공용: 주문 문서 생성 (Vercel Function — Admin SDK 트랜잭션으로 재고 검증 + 무통장이면 차감)
   const createPendingOrder = async () => {
-    const fresh = await getDocument('products', product.id);
-    const currentStock = fresh?.stock ?? 0;
     const needed = qty || 1;
-    if (currentStock < needed) {
-      alert(currentStock === 0 ? '품절된 상품입니다.' : '선택하신 수량으로는 주문할 수 없습니다.');
+    const res = await fetch('/api/order-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        buyerName,
+        phone,
+        address: address || '',
+        productId: product.id,
+        productName: product.name,
+        price: totalPrice,
+        option: option || '',
+        qty: needed,
+        paymentMethod,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || '주문 생성에 실패했어요.');
       return null;
     }
-    const orderId = await addDocument('orders', {
-      buyerName,
-      phone,
-      address: address || '',
-      productId: product.id,
-      productName: product.name,
-      price: totalPrice,
-      option: option || '',
-      qty: needed,
-      paymentMethod,
-      paymentStatus: paymentMethod === 'toss' ? 'pending' : 'awaiting_deposit',
-      status: paymentMethod === 'toss' ? 'pending_payment' : 'new',
-    });
-    return { orderId, currentStock, needed };
+    return { orderId: data.orderId, needed };
   };
 
-  // 무통장 입금: 기존 흐름 유지 (즉시 재고 차감 + OrderComplete)
+  // 무통장 입금: 주문 생성 시점에 재고 차감까지 API 가 처리.
   const handleBankTransfer = async () => {
     const result = await createPendingOrder();
     if (!result) return;
-    updateDocument('products', product.id, { stock: result.currentStock - result.needed }).catch(() => {});
     // 주문 접수 알림톡 (무통장 입금 안내)
     notifyOrderReceived({
       id: result.orderId,

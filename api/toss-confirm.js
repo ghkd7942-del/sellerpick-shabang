@@ -133,7 +133,19 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({ ok: true, orderId, receiptUrl: tossData.receipt?.url });
+    // 응답에 주문 요약 포함 — 클라이언트(PaymentSuccess)가 별도로 orders 문서를 읽지 않아도 되도록.
+    return res.status(200).json({
+      ok: true,
+      orderId,
+      receiptUrl: tossData.receipt?.url,
+      order: {
+        productName: order.productName,
+        buyerName: order.buyerName,
+        price: order.price,
+        phone: order.phone,
+        paymentMethodLabel: tossData.method || '카드·간편결제',
+      },
+    });
   } catch (err) {
     console.error('[toss-confirm] Firestore 업데이트 실패', err);
     return res.status(500).json({ error: 'DB 업데이트 실패: ' + err.message });
